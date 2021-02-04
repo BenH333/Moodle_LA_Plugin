@@ -59,33 +59,40 @@ $PAGE->set_url('/mod/learninganalytics/view.php', array('id' => $cm->id));
 $PAGE->set_title(format_string($moduleinstance->name));
 $PAGE->set_heading(format_string($course->fullname));
 $PAGE->set_context($modulecontext);
-
+$PAGE->requires->jquery();
 echo $OUTPUT->header();
-
-//$user_records = get_enrolled_users($modulecontext, '', 0, '*');
-//$users = array_keys($user_records);
 
 $activities = get_array_of_activities($course->id);
 
 //get users with capability to submit an activity i.e. students
 //$student_records = get_users_by_capability($modulecontext, 'mod/assign:submit');
 
-//Get all students
-$role_id = 5;
-$student_records = $DB->get_records_sql('SELECT u.id, u.username 
-                                            FROM  {user} AS u
-                                            INNER JOIN {context} AS c
-                                                    on u.id = c.instanceid
-                                            INNER JOIN {role_assignments} AS a
-                                                    on a.userid = u.id
-                                            WHERE a.roleid ='. $role_id.' 
+//https://stackoverflow.com/questions/22161606/sql-query-for-courses-enrolment-on-moodle
+//SQL Query to get all students in current course
+//Finding the current course reduces processing time when getting a student object
+//Distinct returns only one of every user incase there are any duplicate users
+//CHECKS:
+// the user is enrolled 
+// the user is not deleted
+// the user is not suspended
+// the role shortname is student
+// the user context is from a course(50)
+// the user enrolment has not ended
+// the course id is the current course
+$student_records = $DB->get_records_sql(' SELECT DISTINCT u.id AS userid, c.id AS courseid
+                                            FROM mdl_user u
+                                            JOIN mdl_user_enrolments ue ON ue.userid = u.id
+                                            JOIN mdl_enrol e ON e.id = ue.enrolid
+                                            JOIN mdl_role_assignments ra ON ra.userid = u.id
+                                            JOIN mdl_context ct ON ct.id = ra.contextid AND ct.contextlevel = 50
+                                            JOIN mdl_course c ON c.id = ct.instanceid AND e.courseid ='.$course->id.'
+                                            JOIN mdl_role r ON r.id = ra.roleid AND r.shortname = "student"
+                                            WHERE e.status = 0 AND u.suspended = 0 AND u.deleted = 0
+                                            AND (ue.timeend = 0 OR ue.timeend > UNIX_TIMESTAMP(NOW())) AND ue.status = 0
                                         ');
 
 $students = array_keys($student_records);
-//print_r($student_records);
 
-//Example SQL Query get student log
-//print_r($DB->get_records_sql('SELECT * FROM {logstore_standard_log} WHERE userid=3'));
 $course_views = 0;
 $time_created = [];
 $logs = [];
@@ -107,12 +114,31 @@ foreach($logs as $student_log){
 //print_r($logs);
 //print_r($time_created);
 
+$modules = $DB->get_records_sql('SELECT DISTINCT m.module AS module
+                                 FROM mdl_course_modules m
+                                 WHERE visible=1 AND course='.$course->id);
+
+$modules = json_decode(json_encode($modules), true);
+$course_modules =[];
+foreach($modules as $module){
+    $activity_modules = $DB->get_record('modules',array('id' =>$module['module']));
+    array_push($course_modules,$activity_modules->name);
+}
+
+//print_r($course_modules);
+//Get Module Name from id
+// $activity_modules = $DB->get_record('modules',array('id' =>$module['module']));
+// $dynamic_activity_modules_data = $DB->get_record($activity_modules->name,array('id' =>$instanceid));
+// echo $dynamic_activity_modules_data->name;
+
+
 $templateContext = (object)[
     'title' => 'Overall Student Engagement',
     //'course_name' => $course->fullname,
     'student_count' => count($students),
     'course_views' => $course_views,
-    'created_at' => $time_created
+    'created_at' => $time_created,
+    'activities' => $course_modules
 ];
 
 echo $OUTPUT->render_from_template('mod_learninganalytics/view', $templateContext);

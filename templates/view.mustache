@@ -62,7 +62,23 @@
     {{/created_at}}
 </table>
 
-<style>
+<h2>Activity Engagement</h2>
+
+<label>Select Activity</label>
+<select>
+    {{#activities}}
+        <option value="{{.}}">
+            {{.}}
+        </option>
+    {{/activities}}
+</select>
 
 
-</style>
+<script>
+    $(document).ready(function() {
+        $.get( "ajax/test.php", function( data ) {
+            $( ".result" ).html( data );
+            //alert( "Load was performed." );
+        });
+    });
+</script>
