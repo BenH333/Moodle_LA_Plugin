@@ -44,16 +44,16 @@
 {{!</p> }}
 <table style="width:100%; border:1px solid; text-align:center;" >
     <tr>
-    <th>Students</th>
+        <th>Students</th>
     </tr>
     <tr>
-    <th>{{student_count}}</th>
+        <th>{{student_count}}</th>
     </tr>
     <tr>
-    <th>Total Course Views</th>
+        <th>Total Course Views</th>
     </tr>
     <tr>
-    <th>{{course_views}}</th>
+        <th>{{course_views}}</th>
     </tr>
     {{#created_at}}
     
@@ -63,22 +63,20 @@
 </table>
 
 <h2>Activity Engagement</h2>
+<div>
+    <label>Select Activity</label>
+    <select id="activities" name="activities">
+        {{#activities}}
+            <option name="option" value="{{.}}">
+                {{.}}
+            </option>
+        {{/activities}}
+    </select>
+    <input type="hidden" id="course" value="{{courseid}}">
+    <button id="apply">Apply</button>
+</div>
 
-<label>Select Activity</label>
-<select>
-    {{#activities}}
-        <option value="{{.}}">
-            {{.}}
-        </option>
-    {{/activities}}
-</select>
+<div id="responsecontainer" style="align:center;"></div>
 
+<div id="tester" style="width:600px;height:250px;"></div>
 
-<script>
-    $(document).ready(function() {
-        $.get( "ajax/test.php", function( data ) {
-            $( ".result" ).html( data );
-            //alert( "Load was performed." );
-        });
-    });
-</script>
