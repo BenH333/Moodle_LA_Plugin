@@ -1,9 +1,12 @@
 <?php
 
+use core\chart_series;
+
     require(__DIR__.'/../../../config.php');
     require_once(__DIR__.'/../lib.php');
     require_once(__DIR__.'/../library.php');
 
+    global $OUTPUT;
     defined('MOODLE_INTERNAL') || die();
     
     echo "  <table border='1'>
@@ -19,5 +22,6 @@
     echo "</table>";
     $object = new database_calls;
     echo $object->getActivities($_GET['keyname'],$_GET['value']);
-   
-?>
+    
+    
+    

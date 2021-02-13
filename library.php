@@ -36,47 +36,59 @@ class database_calls{
     }
 
     public static function getLogData($student_records,$course){
+        //retrieve all course "clicks" from database
+
         global $DB;
         $students = array_keys($student_records);
 
         $course_views = 0;
         $time_created = [];
-        $logs = [];
 
-        foreach($students as $student){
-            //log each action
-            $log = $DB->get_records_sql('SELECT id, userid, timecreated, action
-                                         FROM {logstore_standard_log}
-                                         WHERE courseid='.$course->id.' AND userid='.$student);
-            array_push($logs,$log);
-        }
+        list($insql,$inparams) = $DB->get_in_or_equal($students);
+        $sql = "SELECT * FROM {logstore_standard_log} WHERE courseid=$course->id AND target LIKE 'course' AND component LIKE 'core' AND userid $insql";
+        $course_logs = $DB->get_records_sql($sql,$inparams);
+        $course_views = count($course_logs);
+        $logs = json_decode(json_encode($course_logs), true);
 
-        $logs = json_decode(json_encode($logs), true);
-        //From logs 
-        foreach($logs as $student_log){
-            foreach($student_log as $course_log){
-                $course_views ++;
-                array_push($time_created,$course_log['timecreated']);
-            }
+        foreach($logs as $view){
+            $date_time = date('d-m-Y',$view['timecreated']);
+            array_push($time_created,$date_time);
         }
+        
         return array($course_views, $time_created, $logs);
     }
 
-    public static function getCourseModules($course){
+    public static function getCourseModules($course, $student_records){
         global $DB;
-        $course_modules =[];
+        $students = array_keys($student_records);
+        $module_names = [];
+        $module_usage = [];
 
-        $modules = $DB->get_records_sql('   SELECT DISTINCT m.module AS module
+        //Select course modules id from current course
+        $modules = $DB->get_records_sql('   SELECT DISTINCT m.module AS m_id
                                             FROM mdl_course_modules m
                                             WHERE visible=1 AND course='.$course->id);
 
         $modules = json_decode(json_encode($modules), true);
         foreach($modules as $module){
-            $activity_modules = $DB->get_record('modules',array('id' =>$module['module']));
-            array_push($course_modules,$activity_modules->name);
-        }
+            //get instances each module e.g. quiz 1, quiz 2
+            $instances = $DB->get_records('course_modules',array('course'=>$course->id,'module'=>$module['m_id']));
+            foreach($instances as $instance){
+                $activity_module = $DB->get_record('modules',array('id' =>$instance->module)); //get module name e.g. quiz or forum
+                $dynamic_activity_modules_data = $DB->get_record($activity_module->name,array('id' =>$instance->instance)); 
+                $module_name = $dynamic_activity_modules_data->name;
 
-        return $course_modules;
+                list($insql,$inparams) = $DB->get_in_or_equal($students);
+                $sql = "SELECT id FROM {logstore_standard_log} WHERE courseid=$course->id AND objectid=$instance->instance AND objecttable LIKE '$activity_module->name' AND userid $insql";
+                $module_views = count($DB->get_records_sql($sql,$inparams));
+                
+
+                array_push($module_names,$module_name);
+                array_push($module_usage,$module_views);
+            }
+            
+        }
+        return [$module_names,$module_usage];
 
     }
 }

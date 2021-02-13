@@ -36,47 +36,41 @@
         ]
     }
 }}
-<h1>{{title}}</h1>
+
 
 {{! <p>
 {{course_name
 }}
 {{!</p> }}
-<table style="width:100%; border:1px solid; text-align:center;" >
+<table style="width:100%; border:1px solid; text-align:left;" >
+<h2>Summary</h2>
     <tr>
-        <th>Students</th>
+        <th>Students Enrolled</th>
     </tr>
     <tr>
-        <th>{{student_count}}</th>
+        <td>{{student_count}}</td>
     </tr>
     <tr>
-        <th>Total Course Views</th>
+        <th>Total Course Views by Students</th>
     </tr>
     <tr>
-        <th>{{course_views}}</th>
+        <td>{{course_views}}</td>
     </tr>
-    {{#created_at}}
-    
-       <td> {{.}} </td>
-    
-    {{/created_at}}
 </table>
 
-<h2>Activity Engagement</h2>
+{{! <h2>Activity Engagement</h2>
 <div>
     <label>Select Activity</label>
     <select id="activities" name="activities">
         {{#activities}}
-            <option name="option" value="{{.}}">
-                {{.}}
-            </option>
-        {{/activities}}
-    </select>
-    <input type="hidden" id="course" value="{{courseid}}">
-    <button id="apply">Apply</button>
-</div>
+            {{! <option name="option" value="{{.}}"> }}
+                {{! {{.}} }}
+            {{! </option> }}
+        {{! {{/activities  }}
+    {{! </select> }}
+    {{! <input type="hidden" id="course" value="{{courseid}}"> }}
+    {{! <button id="apply">Apply</button> }}
+{{! </div>  }}
 
-<div id="responsecontainer" style="align:center;"></div>
-
-<div id="tester" style="width:600px;height:250px;"></div>
+{{! <div id="responsecontainer" style="align:center;"></div> }}
 

@@ -22,10 +22,13 @@
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+
+
 require(__DIR__.'/../../config.php');
 require_once(__DIR__.'/lib.php');
 require_once(__DIR__.'/library.php');
 
+$CFG->cachejs = false;
 
 // Course_module ID, or
 $id = optional_param('id', 0, PARAM_INT);
@@ -50,13 +53,6 @@ require_login($course, true, $cm);
 $modulecontext = context_module::instance($cm->id);
 
 $library = new database_calls();
-// $event = \mod_learninganalytics\event\course_module_viewed::create(array(
-//     'objectid' => $moduleinstance->id,
-//     'context' => $modulecontext
-// ));
-// $event->add_record_snapshot('course', $course);
-// $event->add_record_snapshot('learninganalytics', $moduleinstance);
-// $event->trigger();
 
 $PAGE->set_url('/mod/learninganalytics/view.php', array('id' => $cm->id));
 $PAGE->set_title(format_string($moduleinstance->name));
@@ -65,10 +61,8 @@ $PAGE->set_context($modulecontext);
 $PAGE->requires->jquery();
 // $PAGE->requires->js(new moodle_url($CFG->wwwroot.'/mod/learninganalytics/assets/plotly-latest.min.js'));
 $PAGE->requires->js(new moodle_url('/mod/learninganalytics/assets/ajax.js'));
-
-$PAGE->requires->js_call_amd('module.js','init');
-
-
+// $PAGE->requires->js_call_amd('module.js','debug');
+$PAGE->requires->css(new moodle_url('/mod/learninganalytics/assets/style.css'));
 echo $OUTPUT->header();
 
 $activities = get_array_of_activities($course->id);
@@ -85,16 +79,48 @@ $course_views = $log_data[0];
 $time_created = $log_data[1];
 $logs = $log_data[2];
 
-$course_modules = $library->getCourseModules($course);
-
+$course_modules = $library->getCourseModules($course, $student_records);
 $templateContext = (object)[
     'title' => 'Overall Student Engagement',
     'student_count' => count($students),
     'course_views' => $course_views,
     'created_at' => $time_created,
-    'activities' => $course_modules,
-    'courseid' => $course->id
+    // 'activities' => $course_modules,
+    // 'courseid' => $course->id
 ];
 
+$chart_time = array_count_values($time_created);
+$date_count =[]; 
+$dates =[]; 
+
+foreach($chart_time as $key => $value){
+    array_push($dates,$key);
+    array_push($date_count,$value);
+}
+
+$chart = new core\chart_line;
+$chart_series = new core\chart_series('Number of Course Views',$date_count);
+$chart->set_title('Time of Course Access');
+$chart->add_series($chart_series);
+$chart->set_labels($dates);
+
+$pie_chart = new core\chart_pie;
+$pie_series = new core\chart_series("Resource Views", $course_modules[1]);
+$pie_chart->set_title("Resources Accessed by Students");
+$pie_chart->add_series($pie_series);
+$pie_chart->set_labels($course_modules[0]);
+
+
+echo '<h1>Student Engagement</h1>';
+echo '<div style="height:50%!important;width:50%!important;">';
+echo $OUTPUT->render($chart);
+echo '</div>';
+
+echo '<div style="height:50%!important;width:50%!important;">';
+echo $OUTPUT->render($pie_chart);
+echo '</div>';
+
 echo $OUTPUT->render_from_template('mod_learninganalytics/view', $templateContext);
+
+
 echo $OUTPUT->footer();
