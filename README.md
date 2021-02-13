@@ -1,9 +1,8 @@
 # learning_analytics #
 
-TODO Describe the plugin shortly here.
+Learning Analytics Plugin - Provide actionable feedback to Educational Staff
 
-TODO Provide more detailed description here.
-
+As a plugin to the mod folder in the Moodle framework, statistical and trend analysis is provided.
 ## License ##
 
 2021 Ben Hadden
