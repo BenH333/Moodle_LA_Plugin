@@ -35,7 +35,7 @@ class database_calls{
         return $student_records;
     }
 
-    public static function getLogData($student_records,$course){
+    public static function courseAccess($student_records,$course){
         //retrieve all course "clicks" from database
 
         global $DB;
@@ -58,7 +58,7 @@ class database_calls{
         return array($course_views, $time_created, $logs);
     }
 
-    public static function getCourseModules($course, $student_records){
+    public static function resourceAccess($course, $student_records){
         global $DB;
         $students = array_keys($student_records);
         $module_names = [];
@@ -75,20 +75,46 @@ class database_calls{
             $instances = $DB->get_records('course_modules',array('course'=>$course->id,'module'=>$module['m_id']));
             foreach($instances as $instance){
                 $activity_module = $DB->get_record('modules',array('id' =>$instance->module)); //get module name e.g. quiz or forum
-                $dynamic_activity_modules_data = $DB->get_record($activity_module->name,array('id' =>$instance->instance)); 
-                $module_name = $dynamic_activity_modules_data->name;
-
-                list($insql,$inparams) = $DB->get_in_or_equal($students);
-                $sql = "SELECT id FROM {logstore_standard_log} WHERE courseid=$course->id AND objectid=$instance->instance AND objecttable LIKE '$activity_module->name' AND userid $insql";
-                $module_views = count($DB->get_records_sql($sql,$inparams));
-                
-
-                array_push($module_names,$module_name);
-                array_push($module_usage,$module_views);
+                if($activity_module->name != 'assign' && $activity_module->name != 'assignment'){
+                    $dynamic_activity_modules_data = $DB->get_record($activity_module->name,array('id' =>$instance->instance)); 
+                    $module_name = $dynamic_activity_modules_data->name;
+                    list($insql,$inparams) = $DB->get_in_or_equal($students);
+                    $sql = "SELECT id FROM {logstore_standard_log} WHERE courseid=$course->id AND objectid=$instance->instance AND objecttable='$activity_module->name' AND action='viewed' AND userid $insql";
+                    $module_views = count($DB->get_records_sql($sql,$inparams));
+                    array_push($module_names,$module_name);
+                    array_push($module_usage,$module_views);
+                }
             }
             
         }
         return [$module_names,$module_usage];
 
+    }
+
+    public static function lateSubmissions($course, $student_records){
+        global $DB;
+        $late_assignments=0;
+        $submitted_assignments=0;
+        $non_submissions =0;
+
+        $students = count(array_keys($student_records));
+        // select 'assign' module id from current course
+        $assign_modules = $DB->get_records_sql('   SELECT DISTINCT cm.module AS cm_id, m.id AS m_id, m.name AS m_name, a.id AS a_id, a.duedate AS a_due, s.timemodified AS s_sub
+                                                    FROM mdl_course_modules cm
+                                                    JOIN mdl_modules m ON m.id = cm.module
+                                                    JOIN mdl_assign a ON a.course = cm.course
+                                                    JOIN mdl_assign_submission s ON s.assignment = a.id
+                                                    WHERE cm.visible=1 AND m.name="assign" AND s.status="submitted" AND cm.course='.$course->id );
+        $assign_modules = json_decode(json_encode($assign_modules), true);
+
+        foreach($assign_modules as $module){
+            if($module['s_sub'] > $module['a_due']){
+                $late_assignments++;
+            } else if($module['s_sub'] <= $module['a_due']){
+                $submitted_assignments++;
+            }
+        }
+        $non_submissions = $students - ($submitted_assignments + $late_assignments);
+        return([$late_assignments, $submitted_assignments, $non_submissions]);
     }
 }

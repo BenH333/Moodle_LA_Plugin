@@ -1,6 +1,44 @@
+.chart-area{
+     background-color: #f9f9f9;
+    }
 canvas{
-    max-width: 50%!important;
-    max-height: 50%!important;
-    
     margin: auto;
 }
+.overall_activity{
+    width: 66.7%!important;
+    max-height: 20%!important;
+    margin:auto;
+   
+}
+.resource_access, .submissions {
+    width: 33%!important;
+    height: 33%!important;
+    margin-left:11%;
+    display:inline-block;
+    /* margin-left:33%;
+    margin-right:33%; */
+}
+
+.menu {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: #f9f9f9;
+    margin-bottom: 10px;
+  }
+  
+  .menu li {
+    float: left;
+  }
+  
+  .menu li a {
+    display: block;
+    text-align: center;
+    padding: 16px;
+    text-decoration: none;
+  }
+  
+  .menu li a:hover {
+    background-color: #e6e6e6;
+  }

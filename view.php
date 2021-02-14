@@ -27,6 +27,7 @@
 require(__DIR__.'/../../config.php');
 require_once(__DIR__.'/lib.php');
 require_once(__DIR__.'/library.php');
+require_once(__DIR__.'/assets/navigation_menu.php');
 
 $CFG->cachejs = false;
 
@@ -59,9 +60,7 @@ $PAGE->set_title(format_string($moduleinstance->name));
 $PAGE->set_heading(format_string($course->fullname));
 $PAGE->set_context($modulecontext);
 $PAGE->requires->jquery();
-// $PAGE->requires->js(new moodle_url($CFG->wwwroot.'/mod/learninganalytics/assets/plotly-latest.min.js'));
 $PAGE->requires->js(new moodle_url('/mod/learninganalytics/assets/ajax.js'));
-// $PAGE->requires->js_call_amd('module.js','debug');
 $PAGE->requires->css(new moodle_url('/mod/learninganalytics/assets/style.css'));
 echo $OUTPUT->header();
 
@@ -74,21 +73,22 @@ $student_records = $library->getStudentRecords($course);
 
 $students = array_keys($student_records);
 
-$log_data = $library->getLogData($student_records,$course);
+$log_data = $library->courseAccess($student_records,$course);
 $course_views = $log_data[0];
 $time_created = $log_data[1];
 $logs = $log_data[2];
 
-$course_modules = $library->getCourseModules($course, $student_records);
+$course_modules = $library->resourceAccess($course, $student_records);
+
+$late_submissions = $library->lateSubmissions($course, $student_records);
+
 $templateContext = (object)[
     'title' => 'Overall Student Engagement',
     'student_count' => count($students),
     'course_views' => $course_views,
     'created_at' => $time_created,
-    // 'activities' => $course_modules,
-    // 'courseid' => $course->id
 ];
-
+ 
 $chart_time = array_count_values($time_created);
 $date_count =[]; 
 $dates =[]; 
@@ -102,6 +102,10 @@ $chart = new core\chart_line;
 $chart_series = new core\chart_series('Number of Course Views',$date_count);
 $chart->set_title('Time of Course Access');
 $chart->add_series($chart_series);
+$yaxis = new core\chart_axis;
+$yaxis->set_stepsize(1);
+$yaxis->set_min(0);
+$chart->set_yaxis($yaxis);
 $chart->set_labels($dates);
 
 $pie_chart = new core\chart_pie;
@@ -110,17 +114,30 @@ $pie_chart->set_title("Resources Accessed by Students");
 $pie_chart->add_series($pie_series);
 $pie_chart->set_labels($course_modules[0]);
 
+$sub_chart = new core\chart_pie;
+$sub_chart->set_doughnut(true);
+$sub_series = new core\chart_series("Assignment Submissions", $late_submissions);
+$sub_chart->set_title("Student Assignments");
+$sub_chart->add_series($sub_series);
+$sub_chart->set_labels(["Late Submissions","Submitted","Not-Submitted"]);
 
 echo '<h1>Student Engagement</h1>';
-echo '<div style="height:50%!important;width:50%!important;">';
+
+$menu = new navigation_menu();
+$menu->create_menu($id);
+
+echo '<div class="overall_activity">';
 echo $OUTPUT->render($chart);
 echo '</div>';
 
-echo '<div style="height:50%!important;width:50%!important;">';
+echo '<div class="resource_access">';
 echo $OUTPUT->render($pie_chart);
 echo '</div>';
 
-echo $OUTPUT->render_from_template('mod_learninganalytics/view', $templateContext);
+echo '<div class="submissions">';
+echo $OUTPUT->render($sub_chart);
+echo '</div>';
 
+echo $OUTPUT->render_from_template('mod_learninganalytics/view', $templateContext);
 
 echo $OUTPUT->footer();

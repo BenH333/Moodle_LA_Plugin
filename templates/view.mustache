@@ -14,34 +14,8 @@
     You should have received a copy of the GNU General Public License
     along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 }}
-{{!
-    @template mod_learninganalytics/view
 
 
-    Example context (json):
-    {
-        "tabs": [
-         {
-            "name": "tab1",
-            "active": 0,
-            "displayname": "Inactive tab1",
-            "html": "<p>Tab 1 content</p>"
-         },
-         {
-            "name": "tab2",
-            "active": 1,
-            "displayname": "Active tab2",
-            "html": "<p>Tab 2 content</p>"
-         }
-        ]
-    }
-}}
-
-
-{{! <p>
-{{course_name
-}}
-{{!</p> }}
 <table style="width:100%; border:1px solid; text-align:left;" >
 <h2>Summary</h2>
     <tr>
@@ -51,26 +25,12 @@
         <td>{{student_count}}</td>
     </tr>
     <tr>
-        <th>Total Course Views by Students</th>
+        <th>All Course Views from Students</th>
     </tr>
     <tr>
         <td>{{course_views}}</td>
     </tr>
 </table>
 
-{{! <h2>Activity Engagement</h2>
-<div>
-    <label>Select Activity</label>
-    <select id="activities" name="activities">
-        {{#activities}}
-            {{! <option name="option" value="{{.}}"> }}
-                {{! {{.}} }}
-            {{! </option> }}
-        {{! {{/activities  }}
-    {{! </select> }}
-    {{! <input type="hidden" id="course" value="{{courseid}}"> }}
-    {{! <button id="apply">Apply</button> }}
-{{! </div>  }}
 
-{{! <div id="responsecontainer" style="align:center;"></div> }}
 
