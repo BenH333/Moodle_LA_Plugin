@@ -26,3 +26,5 @@
 defined('MOODLE_INTERNAL') || die();
 
 $string['pluginname'] = 'learning_analytics';
+$string['modulename'] = 'Learning Analytics';
+$string['pluginadministration'] = 'learning_analytics';
