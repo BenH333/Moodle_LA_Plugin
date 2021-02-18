@@ -1,3 +1,4 @@
+/* Charts */
 .chart-area{
      background-color: #f9f9f9;
     }
@@ -19,6 +20,7 @@ canvas{
     margin-right:33%; */
 }
 
+/* Sub Menu */
 .menu {
     list-style-type: none;
     margin: 0;
