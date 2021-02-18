@@ -10,17 +10,19 @@ class database_calls{
     public static function getStudentRecords($course){
         global $DB;
         //https://stackoverflow.com/questions/22161606/sql-query-for-courses-enrolment-on-moodle
+        //https://docs.moodle.org/dev/New_enrolments_in_2.0
         //SQL Query to get all students in current course
         //Finding the current course reduces processing time when getting a student object
         //Distinct returns only one of every user incase there are any duplicate users
         //CHECKS:
-        // the user is enrolled 
+        // dynamically that the user is enrolled on a course
         // the user is not deleted
         // the user is not suspended
         // the role shortname is student
-        // the user context is from a course(50)
-        // the user enrolment has not ended
+        // the user context is from a course(50) = student
+        // the user enrolment has not ended && status = 0(active)
         // the course id is the current course
+        // the user is not enrolled as a guest or optional enrollment
         $student_records = $DB->get_records_sql('   SELECT DISTINCT u.id AS userid, c.id AS courseid
                                                     FROM mdl_user u
                                                     JOIN mdl_user_enrolments ue ON ue.userid = u.id
@@ -91,7 +93,9 @@ class database_calls{
 
     }
 
-    public static function lateSubmissions($course, $student_records){
+    
+    public static function lateSingleSubmissions($course, $student_records){
+        //function not used yet
         global $DB;
         $late_assignments=0;
         $submitted_assignments=0;
@@ -115,6 +119,36 @@ class database_calls{
             }
         }
         $non_submissions = $students - ($submitted_assignments + $late_assignments);
+        return([$late_assignments, $submitted_assignments, $non_submissions]);
+    }
+
+    public static function lateSubmissions($course, $student_records){
+        global $DB;
+        $late_assignments=0;
+        $submitted_assignments=0;
+        $non_submissions =0;
+        $assign_modules = $DB->get_records_sql("SELECT * FROM mdl_assign WHERE course=$course->id");
+        $required_submissions = count(array_keys($student_records)) * count($assign_modules);
+
+        // select 'assign' module id from current course
+        $submitted_assign_modules = $DB->get_records_sql('  SELECT cm.module AS cm_id, m.id AS m_id, m.name AS m_name, a.id AS a_id, a.duedate AS a_due, s.timemodified AS s_sub
+                                                            FROM mdl_course_modules cm
+                                                            JOIN mdl_modules m ON m.id = cm.module
+                                                            JOIN mdl_assign a ON a.course = cm.course
+                                                            JOIN mdl_assign_submission s ON s.assignment = a.id
+                                                            WHERE cm.visible=1 AND m.name="assign" AND s.status="submitted" AND cm.course='.$course->id );
+
+        $submitted_assign_modules = json_decode(json_encode($submitted_assign_modules), true);
+
+        foreach($submitted_assign_modules as $module){
+            if($module['s_sub'] > $module['a_due']){
+                $late_assignments++;
+            } else if($module['s_sub'] <= $module['a_due']){
+                $submitted_assignments++;
+            }
+        }
+        
+        $non_submissions = $required_submissions - ($submitted_assignments + $late_assignments);
         return([$late_assignments, $submitted_assignments, $non_submissions]);
     }
 }
