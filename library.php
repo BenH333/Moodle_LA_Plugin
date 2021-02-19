@@ -151,4 +151,45 @@ class database_calls{
         $non_submissions = $required_submissions - ($submitted_assignments + $late_assignments);
         return([$late_assignments, $submitted_assignments, $non_submissions]);
     }
+
+    public static function quizGrades($course, $student_records){
+        //Get all Quiz scores and categorise the average score per student
+        //plot each grade % per quiz
+        global $DB;
+        $participants_count=0;
+        $quiz_result = array();
+
+        $quizzes = $DB->get_records_sql("   SELECT cm.id AS cm_id, cm.module AS cm_module, cm.instance AS cm_instance, m.id AS m_id, m.name AS m_name, q.name AS q_name, q.id AS q_id, q.grade AS quiz_grade
+                                            FROM mdl_course_modules cm
+                                            JOIN mdl_modules m ON m.id = cm.module
+                                            JOIN mdl_quiz q on q.id = cm.instance
+                                            WHERE cm.visible=1 AND m.name='quiz' AND cm.course=$course->id");
+
+        $quizzes = json_decode(json_encode($quizzes), true);
+        
+        $quiz_result= array();
+        foreach($quizzes as $quiz){
+            $quiz_percentages= array();
+
+            //Get all user scores from the queried quizzes
+            $id= $quiz['q_id'];
+            $quiz_grade = $quiz['quiz_grade'];
+            $quiz_grades = $DB->get_records('quiz_grades',array('quiz' =>$id)); 
+            $quiz_grades = json_decode(json_encode($quiz_grades), true);
+
+            foreach($quiz_grades as $grade){
+                $participants_count++;
+                $percent = ($grade['grade'] / $quiz_grade) * 100;
+                if($percent <=59){
+
+                }
+                array_push($quiz_percentages,$percent);
+            }
+            // array_push($quiz_scores,$grades);
+            $quiz_result[$quiz['q_name']] = $quiz_percentages;
+            
+        }
+        // print_r($quiz_result);
+        return [$participants_count, $quiz_result];
+    }
 }
