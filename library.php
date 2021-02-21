@@ -152,21 +152,29 @@ class database_calls{
         return([$late_assignments, $submitted_assignments, $non_submissions]);
     }
 
+    public static function getQuizzes($course){
+        global $DB;
+
+        $quizzes = $DB->get_records_sql("   SELECT cm.id AS cm_id, cm.module AS cm_module, cm.instance AS cm_instance, m.id AS m_id, m.name AS m_name, q.name AS q_name, q.id AS q_id, q.grade AS quiz_grade
+        FROM mdl_course_modules cm
+        JOIN mdl_modules m ON m.id = cm.module
+        JOIN mdl_quiz q on q.id = cm.instance
+        WHERE cm.visible=1 AND m.name='quiz' AND cm.course=$course->id");
+
+        $quizzes = json_decode(json_encode($quizzes), true);
+        return $quizzes;
+    }
+
     public static function quizGrades($course, $student_records){
+        global $DB;
         //Get all Quiz scores and categorise the average score per student
         //plot each grade % per quiz
-        global $DB;
         $participants_count=0;
         $quiz_result = array();
 
-        $quizzes = $DB->get_records_sql("   SELECT cm.id AS cm_id, cm.module AS cm_module, cm.instance AS cm_instance, m.id AS m_id, m.name AS m_name, q.name AS q_name, q.id AS q_id, q.grade AS quiz_grade
-                                            FROM mdl_course_modules cm
-                                            JOIN mdl_modules m ON m.id = cm.module
-                                            JOIN mdl_quiz q on q.id = cm.instance
-                                            WHERE cm.visible=1 AND m.name='quiz' AND cm.course=$course->id");
+        $db = new database_calls;
+        $quizzes = $db->getQuizzes($course);
 
-        $quizzes = json_decode(json_encode($quizzes), true);
-        
         $quiz_result= array();
         foreach($quizzes as $quiz){
             $quiz_percentages= array();
@@ -180,16 +188,158 @@ class database_calls{
             foreach($quiz_grades as $grade){
                 $participants_count++;
                 $percent = ($grade['grade'] / $quiz_grade) * 100;
-                if($percent <=59){
-
-                }
                 array_push($quiz_percentages,$percent);
             }
-            // array_push($quiz_scores,$grades);
             $quiz_result[$quiz['q_name']] = $quiz_percentages;
-            
         }
-        // print_r($quiz_result);
         return [$participants_count, $quiz_result];
     }
+
+    public static function quizCompletion($course, $student_records){
+        global $DB;
+        //for every quiz find the percentage of students that have completed it
+
+        $enrolled_students= count(array_keys($student_records));
+        $quiz_completions=array();
+        $uncompleted=array();
+
+        $db = new database_calls;
+        $quizzes = $db->getQuizzes($course);
+
+        foreach($quizzes as $quiz){
+            $id= $quiz['q_id'];
+            $attempts = $DB->get_records('quiz_grades',array('quiz' =>$id)); 
+            $attempted = (count($attempts) / $enrolled_students) * 100;
+            $not_attempted = 100 - $attempted;
+            array_push($quiz_completions, $attempted);
+            array_push($uncompleted, $not_attempted);
+        }
+
+        return [$quiz_completions,$uncompleted];
+    }
+
+    public static function getMultipleDiscussions($course){
+        global $DB;
+        //There are many forums
+        //There are many discussions
+        //There are many posts per discussion
+        $forums = $DB->get_records_sql(" SELECT f.id AS forum_id, f.name AS forum_name, m.id AS module_id, cm.id AS course_module_id
+                                         FROM mdl_forum f
+                                         JOIN mdl_modules m ON m.name='forum'
+                                         JOIN mdl_course_modules cm ON cm.id=m.id
+                                         WHERE f.course=$course->id AND type='general' OR type='blog' AND cm.visible=1");
+
+        $forums = json_decode(json_encode($forums), true);
+        
+        $labelForums=array();
+        $multipleDiscussions=array();
+        $multiplePosts=array();
+
+        foreach ($forums as $forum){
+            $forumId = $forum['forum_id'];
+            array_push($labelForums, $forum['forum_name']);
+
+            $discussions = $DB->get_records_sql("SELECT fd.id AS forum_discussion_id, fd.name AS forum_name
+                                                 FROM mdl_forum_discussions fd
+                                                 JOIN mdl_forum f ON f.id = fd.forum
+                                                 WHERE f.id=$forumId AND f.course=$course->id");
+            $discussions = json_decode(json_encode($discussions), true);
+            array_push($multipleDiscussions, count($discussions));
+
+            if(count($discussions) == 0){
+                array_push($multiplePosts, 0);
+            } else{
+                foreach($discussions as $discussion){
+                    $d_id = $discussion['forum_discussion_id'];
+
+                    $posts = $DB->get_records_sql(" SELECT fp.id as post_id
+                                                    FROM mdl_forum_posts fp 
+                                                    JOIN mdl_forum_discussions fd ON fp.discussion = fd.id
+                                                    WHERE fd.course=$course->id AND fd.forum=$forumId AND fp.discussion=$d_id
+                                                ");
+                    $posts = json_decode(json_encode($posts), true);
+                    array_push($multiplePosts, count($posts));
+                }
+            }
+        }
+        return ([$labelForums, $multipleDiscussions, $multiplePosts]);
+
+    }
+
+    public static function getSingleDiscussions($course){
+        global $DB;
+        $forumPosts=array();
+
+        $forums = $DB->get_records_sql(" SELECT f.id AS forum_id, f.name AS name, m.id AS module_id, cm.id AS course_module_id
+                                         FROM mdl_forum f
+                                         JOIN mdl_modules m ON m.name='forum'
+                                         JOIN mdl_course_modules cm ON cm.id=m.id
+                                         WHERE f.course=$course->id AND type='single' OR type='qanda' AND cm.visible=1");
+
+        $forums = json_decode(json_encode($forums), true);
+
+        foreach ($forums as $forum){
+            $forumId = $forum['forum_id'];
+            $posts = $DB->get_records_sql(" SELECT fd.id AS forum_disc_id, fp.id as forum_id
+                                            FROM mdl_forum_discussions fd
+                                            JOIN mdl_forum_posts fp ON fp.discussion = fd.id
+                                            WHERE fd.course=$course->id AND fd.forum=$forumId
+                                            ");
+
+            $posts = json_decode(json_encode($posts), true);
+            
+            array_push($forumPosts,[$forum['name'], count($posts)]);
+        }
+        return $forumPosts;
+        
+    }
+
+
+    public static function getLimitedDiscussions($course){
+        global $DB;
+        //There are many forums
+        //There is one discussion per user
+        //There are many posts per discussion
+        $forums = $DB->get_records_sql(" SELECT f.id AS forum_id, f.name AS forum_name, m.id AS module_id, cm.id AS course_module_id
+                                         FROM mdl_forum f
+                                         JOIN mdl_modules m ON m.name='forum'
+                                         JOIN mdl_course_modules cm ON cm.id=m.id
+                                         WHERE f.course=$course->id AND type='eachuser' AND cm.visible=1");
+
+        $forums = json_decode(json_encode($forums), true);
+        
+        $labelForums=array();
+        $multipleDiscussions=array();
+        $multiplePosts=array();
+
+        foreach ($forums as $forum){
+            $forumId = $forum['forum_id'];
+            array_push($labelForums, $forum['forum_name']);
+            $discussions = $DB->get_records_sql("SELECT fd.id AS forum_discussion_id, fd.name AS forum_name
+                                                 FROM mdl_forum_discussions fd
+                                                 JOIN mdl_forum f ON f.id = fd.forum
+                                                 WHERE f.id=$forumId AND f.course=$course->id");
+            $discussions = json_decode(json_encode($discussions), true);
+            array_push($multipleDiscussions, count($discussions));
+
+            if(count($discussions) == 0){
+                array_push($multiplePosts, 0);
+            } else{
+                foreach($discussions as $discussion){
+                    $d_id = $discussion['forum_discussion_id'];
+
+                    $posts = $DB->get_records_sql(" SELECT fp.id as post_id
+                                                    FROM mdl_forum_posts fp 
+                                                    JOIN mdl_forum_discussions fd ON fp.discussion = fd.id
+                                                    WHERE fd.course=$course->id AND fd.forum=$forumId AND fp.discussion=$d_id
+                                                ");
+                    $posts = json_decode(json_encode($posts), true);
+
+                    array_push($multiplePosts, count($posts));
+                }
+            }
+        }
+        return ([$labelForums, $multipleDiscussions, $multiplePosts]);
+    }
+
 }

@@ -71,7 +71,7 @@ $menu->create_menu($id);
 
 $student_records = $library->getStudentRecords($course);
 
-[$participants, $quiz_result] = $library->quizGrades($course,$student_records);
+[$attempts, $quiz_result] = $library->quizGrades($course,$student_records);
 $chart = new core\chart_bar();
 
 $labels=array();
@@ -120,14 +120,28 @@ $chart->add_series($seriesB);
 $chart->add_series($seriesC);
 $chart->add_series($seriesD);
 $chart->set_stacked(true);
-$chart->set_title("Performance Distribution per Quiz with: $participants participants");
+$chart->set_title("Performance Distribution per Quiz with: $attempts overall attempts");
 $chart->set_labels($labels);
 
 echo '<div class="overall_activity">';
 echo $OUTPUT->render($chart);
 echo '</div>';
 
+[$quiz_attempts,$no_attempts] = $library->quizCompletion($course, $student_records);
+
+$seriesAttempted = new \core\chart_series('Attempted', $quiz_attempts);
+$seriesNotAttempted = new \core\chart_series('Not Attempted', $no_attempts);
+
+$completion_chart = new core\chart_bar();
+$completion_chart->set_labels($labels);
+$completion_chart->set_stacked(true);
+$completion_chart->set_title("Percentage of students attempts");
+$completion_chart->add_series($seriesAttempted);
+$completion_chart->add_series($seriesNotAttempted);
 
 
+echo '<div class="overall_activity">';
+echo $OUTPUT->render($completion_chart);
+echo '</div>';
 
 echo $OUTPUT->footer();
