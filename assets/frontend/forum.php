@@ -98,7 +98,6 @@ $multiplePosts=$multipleForums[2];
 $multDiscSeries = new \core\chart_series('Discussions',$multipleDiscussions);
 $multDiscPostSeries = new \core\chart_series('Posts',$multiplePosts);
 
-
 $multipleDiscussionsChart = new core\chart_bar();
 $multipleDiscussionsChart->set_labels($labelForums);
 $multipleDiscussionsChart->add_series($multDiscSeries);

@@ -22,7 +22,6 @@ class navigation_menu {
                     html_writer::link($CFG->wwwroot.$forum,'Forum'),
                     html_writer::link($CFG->wwwroot.$assignment,'Assignment'),
                     html_writer::link($CFG->wwwroot.$activities,'Activities'),
-                    html_writer::link($CFG->wwwroot.$predictions,'Predictions'),
                     ];
 
         echo '<ul class="menu">';

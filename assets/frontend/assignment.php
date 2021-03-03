@@ -69,6 +69,33 @@ echo '<h1>Assignment Engagement</h1>';
 $menu = new navigation_menu();
 $menu->create_menu($id);
 
+[$labels, $assignTimeCount] = $library->getAssignmentSubmissionTime($course);
+$chart = new \core\chart_line();
+$chart->set_labels($labels);
+$eachAssignmentSeries=array();
+// print_r($labels);
 
+foreach($assignTimeCount as $assignment){
+    // print_r($assignment[1]);
+    // print_r("------");
+    $countOfDates=array();
+    foreach($labels as $label_date){
+        if(isset($assignment[1][$label_date])){
+            // print_r($assignment[1][$label_date]);
+            array_push($countOfDates, $assignment[1][$label_date]);
+        }else{
+            array_push($countOfDates, 0);
+        }
+    }
+    // print_r($assignment[0]);
+    // print_r($countOfDates);
+    // print_r("------");
 
+    $series = new core\chart_series($assignment[0],$countOfDates);
+    $chart->add_series($series);
+    
+}
+echo '<div class="overall_activity">';
+echo $OUTPUT->render($chart);
+echo '</div>';
 echo $OUTPUT->footer();

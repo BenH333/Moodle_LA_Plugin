@@ -93,35 +93,6 @@ class database_calls{
 
     }
 
-    
-    public static function lateSingleSubmissions($course, $student_records){
-        //function not used yet
-        global $DB;
-        $late_assignments=0;
-        $submitted_assignments=0;
-        $non_submissions =0;
-
-        $students = count(array_keys($student_records));
-        // select 'assign' module id from current course
-        $assign_modules = $DB->get_records_sql('   SELECT DISTINCT cm.module AS cm_id, m.id AS m_id, m.name AS m_name, a.id AS a_id, a.duedate AS a_due, s.timemodified AS s_sub
-                                                    FROM mdl_course_modules cm
-                                                    JOIN mdl_modules m ON m.id = cm.module
-                                                    JOIN mdl_assign a ON a.course = cm.course
-                                                    JOIN mdl_assign_submission s ON s.assignment = a.id
-                                                    WHERE cm.visible=1 AND m.name="assign" AND s.status="submitted" AND cm.course='.$course->id );
-        $assign_modules = json_decode(json_encode($assign_modules), true);
-
-        foreach($assign_modules as $module){
-            if($module['s_sub'] > $module['a_due']){
-                $late_assignments++;
-            } else if($module['s_sub'] <= $module['a_due']){
-                $submitted_assignments++;
-            }
-        }
-        $non_submissions = $students - ($submitted_assignments + $late_assignments);
-        return([$late_assignments, $submitted_assignments, $non_submissions]);
-    }
-
     public static function lateSubmissions($course, $student_records){
         global $DB;
         $late_assignments=0;
@@ -131,7 +102,7 @@ class database_calls{
         $required_submissions = count(array_keys($student_records)) * count($assign_modules);
 
         // select 'assign' module id from current course
-        $submitted_assign_modules = $DB->get_records_sql('  SELECT cm.module AS cm_id, m.id AS m_id, m.name AS m_name, a.id AS a_id, a.duedate AS a_due, s.timemodified AS s_sub
+        $submitted_assign_modules = $DB->get_records_sql('  SELECT cm.id AS id, cm.module AS cm_id, m.id AS m_id, m.name AS m_name, a.id AS a_id, a.duedate AS a_due, s.timemodified AS s_sub
                                                             FROM mdl_course_modules cm
                                                             JOIN mdl_modules m ON m.id = cm.module
                                                             JOIN mdl_assign a ON a.course = cm.course
@@ -139,7 +110,7 @@ class database_calls{
                                                             WHERE cm.visible=1 AND m.name="assign" AND s.status="submitted" AND cm.course='.$course->id );
 
         $submitted_assign_modules = json_decode(json_encode($submitted_assign_modules), true);
-
+        // print_r($submitted_assign_modules);
         foreach($submitted_assign_modules as $module){
             if($module['s_sub'] > $module['a_due']){
                 $late_assignments++;
@@ -342,4 +313,78 @@ class database_calls{
         return ([$labelForums, $multipleDiscussions, $multiplePosts]);
     }
 
+    public static function getAssignmentSubmissionTime($course){
+        global $DB;
+        //get all dates, and count each date for each assignment
+        //return every date with a submission as $labels
+        //"mod sub date count" is the modulename, submission date and submission count at that date
+
+        $allDates=array();
+        $moduleSubmissions=[];
+        $modSubDateCount=[];
+
+        // Get assignments from current course
+        $assign_modules = $DB->get_records_sql(" SELECT a.id AS a_id, a.name AS name, a.course AS course, m.name AS m_name
+                                                 FROM mdl_assign a
+                                                 JOIN mdl_course_modules cm ON a.course=cm.course
+                                                 JOIN mdl_modules m ON m.id = cm.module
+                                                 WHERE cm.visible=1 AND cm.course=$course->id AND m.name='assign' " );
+        $assign_modules = json_decode(json_encode($assign_modules), true);
+        
+        //get each submitted assignment and its date
+        $submissions = $DB->get_records_sql("  SELECT s.id AS s_id, cm.id AS id, cm.module AS cm_id, m.id AS m_id, m.name AS m_name, a.id AS a_id, a.name AS a_name, a.course AS course, s.timecreated AS s_sub
+                                                            FROM mdl_assign_submission s 
+                                                            JOIN mdl_assign a ON a.id = s.assignment
+                                                            JOIN mdl_course_modules cm ON a.course=cm.course
+                                                            JOIN mdl_modules m ON m.id = cm.module
+                                                            WHERE cm.visible=1 AND m.name='assign' AND s.status='submitted' AND cm.course=$course->id ");
+
+        $submissions = json_decode(json_encode($submissions), true);
+
+        //set an empty array with the module name as the key
+        foreach($assign_modules as $module){
+            $moduleSubmissions[$module['name']]=array();
+        }
+
+        foreach($assign_modules as $module){
+            foreach($submissions as $submission){
+                if($module['name'] == $submission['a_name']){
+                    //get module and associate with every submission date
+                    array_push($moduleSubmissions[$module['name']], date('d-m-Y',$submission['s_sub']))."\n";
+                } 
+            }
+        }
+
+        foreach($moduleSubmissions as $key=> $moduleSub){
+            //count the time of each submission in an array
+            $timeCount=array();
+            
+            foreach($moduleSub as $sub){
+                array_push($timeCount,$sub);
+            }
+            //count the number of items in the array
+            $counts = array_count_values($timeCount);
+            
+            array_push($allDates,array_keys($counts));
+            array_push($modSubDateCount, [$key,$counts]);
+        }
+
+        $labels=array();
+        //add each date from all assignments to the chart labels
+        foreach($allDates as $date){
+            foreach($date as $item){
+                array_push($labels,$item);
+            }
+        }
+
+        //date sort from stack overflow to order dates
+        //https://stackoverflow.com/questions/40462778/how-to-sort-date-array-in-php
+        function date_sort($a,$b){
+            return strtotime($a) - strtotime($b);
+        }
+        usort($labels,"date_sort");
+       
+        return [$labels,$modSubDateCount];
+    }
+    
 }

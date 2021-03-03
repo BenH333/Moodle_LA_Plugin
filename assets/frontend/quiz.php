@@ -59,9 +59,7 @@ $PAGE->set_title(format_string($moduleinstance->name));
 $PAGE->set_heading(format_string($course->fullname));
 $PAGE->set_context($modulecontext);
 $PAGE->requires->jquery();
-// $PAGE->requires->js(new moodle_url($CFG->wwwroot.'/mod/learninganalytics/assets/plotly-latest.min.js'));
 $PAGE->requires->js(new moodle_url('/mod/learninganalytics/assets/ajax.js'));
-// $PAGE->requires->js_call_amd('module.js','debug');
 $PAGE->requires->css(new moodle_url('/mod/learninganalytics/assets/style.css'));
 echo $OUTPUT->header();
 
