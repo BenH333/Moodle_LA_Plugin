@@ -72,6 +72,7 @@ $menu->create_menu($id);
 [$labels, $assignTimeCount] = $library->getAssignmentSubmissionTime($course);
 $chart = new \core\chart_line();
 $chart->set_labels($labels);
+$chart->set_title("Coursework Submissions over Time");
 $eachAssignmentSeries=array();
 // print_r($labels);
 

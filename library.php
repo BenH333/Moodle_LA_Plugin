@@ -75,8 +75,10 @@ class database_calls{
         foreach($modules as $module){
             //get instances each module e.g. quiz 1, quiz 2
             $instances = $DB->get_records('course_modules',array('course'=>$course->id,'module'=>$module['m_id']));
+
             foreach($instances as $instance){
                 $activity_module = $DB->get_record('modules',array('id' =>$instance->module)); //get module name e.g. quiz or forum
+
                 if($activity_module->name != 'assign' && $activity_module->name != 'assignment'){
                     $dynamic_activity_modules_data = $DB->get_record($activity_module->name,array('id' =>$instance->instance)); 
                     $module_name = $dynamic_activity_modules_data->name;
@@ -98,11 +100,15 @@ class database_calls{
         $late_assignments=0;
         $submitted_assignments=0;
         $non_submissions =0;
+
+        //get all assignments from course
         $assign_modules = $DB->get_records_sql("SELECT * FROM mdl_assign WHERE course=$course->id");
+
+        //all assignments = number of students * assignments
         $required_submissions = count(array_keys($student_records)) * count($assign_modules);
 
-        // select 'assign' module id from current course
-        $submitted_assign_modules = $DB->get_records_sql('  SELECT cm.id AS id, cm.module AS cm_id, m.id AS m_id, m.name AS m_name, a.id AS a_id, a.duedate AS a_due, s.timemodified AS s_sub
+        // select 'submitted' assign_submission id from current course
+        $submitted_assign_modules = $DB->get_records_sql('  SELECT s.id AS submit, a.duedate AS a_due, s.timemodified AS s_sub
                                                             FROM mdl_course_modules cm
                                                             JOIN mdl_modules m ON m.id = cm.module
                                                             JOIN mdl_assign a ON a.course = cm.course
@@ -110,7 +116,7 @@ class database_calls{
                                                             WHERE cm.visible=1 AND m.name="assign" AND s.status="submitted" AND cm.course='.$course->id );
 
         $submitted_assign_modules = json_decode(json_encode($submitted_assign_modules), true);
-        // print_r($submitted_assign_modules);
+
         foreach($submitted_assign_modules as $module){
             if($module['s_sub'] > $module['a_due']){
                 $late_assignments++;
