@@ -22,23 +22,42 @@
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-
-
 require(__DIR__.'/../../context.php');
+require_once(__DIR__.'/../../stats_library.php');
+require_once(__DIR__.'/../../activity_library.php');
 
-$PAGE->set_url('/mod/learninganalytics/assets/frontend/assignment.php', array('id' => $cm->id));
+$stats_library = new course_activity();
+
+$PAGE->set_url('/mod/learninganalytics/assets/frontend/activities.php', array('id' => $cm->id));
 
 echo $OUTPUT->header();
 
-echo '<h1>Assignment Engagement</h1>';
+echo '<h1>Enrolled Students</h1>';
  
 //menu to select pages
 $menu = new navigation_menu();
 $menu->create_menu($id);
 
-[$labels, $assignTimeCount] = $stats_library->getAssignmentSubmissionTime($course);
-$chart = $charts->assignments($assignTimeCount,$labels);
-echo '<div class="overall_activity">';
-echo $OUTPUT->render($chart);
-echo '</div>';
+
+//table displays every enrolled student
+$activity_library = new student_activity();
+$profiles = $activity_library->getStudents($course);
+
+$table = new html_table();
+$table->head = array('Username','First Name', 'Last Name', 'Last Login', 'Action',);
+foreach ($profiles as $prof) {
+    
+    $username = $prof->u_username;
+    $first_name = $prof->u_fname;
+    $last_name = $prof->u_lname;
+    $session = $prof->u_lastlogin;
+
+    $dir = "/mod/learninganalytics/assets/frontend/student.php?id=$id"."&u=$prof->userid";
+    $link = html_writer::link($CFG->wwwroot.$dir,'View');
+
+    $table->data[] = array($username, $first_name, $last_name, $session, $link);
+}
+
+echo html_writer::table($table);
+
 echo $OUTPUT->footer();

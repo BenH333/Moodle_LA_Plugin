@@ -24,43 +24,14 @@
 
 
 
-require(__DIR__.'/../../../../config.php');
-require_once(__DIR__.'/../../lib.php');
-require_once(__DIR__.'/../../library.php');
-require_once(__DIR__.'/../navigation_menu.php');
-$CFG->cachejs = false;
+require(__DIR__.'/../../context.php');
+require_once(__DIR__.'/../../stats_library.php');
+require_once(__DIR__.'/../menu/navigation_menu.php');
 
-// Course_module ID, or
-$id = optional_param('id', 0, PARAM_INT);
-
-// ... module instance id.
-$l  = optional_param('l', 0, PARAM_INT);
-
-if ($id) {
-    $cm             = get_coursemodule_from_id('learninganalytics', $id, 0, false, MUST_EXIST);
-    $course         = $DB->get_record('course', array('id' => $cm->course), '*', MUST_EXIST);
-    $moduleinstance = $DB->get_record('learninganalytics', array('id' => $cm->instance), '*', MUST_EXIST);
-} else if ($l) {
-    $moduleinstance = $DB->get_record('learninganalytics', array('id' => $n), '*', MUST_EXIST);
-    $course         = $DB->get_record('course', array('id' => $moduleinstance->course), '*', MUST_EXIST);
-    $cm             = get_coursemodule_from_instance('learninganalytics', $moduleinstance->id, $course->id, false, MUST_EXIST);
-} else {
-    print_error(get_string('missingidandcmid', 'mod_learninganalytics'));
-}
-
-require_login($course, true, $cm);
-
-$modulecontext = context_module::instance($cm->id);
-
-$library = new database_calls();
+$stats_library = new course_activity();
 
 $PAGE->set_url('/mod/learninganalytics/assets/frontend/forum.php', array('id' => $cm->id));
-$PAGE->set_title(format_string($moduleinstance->name));
-$PAGE->set_heading(format_string($course->fullname));
-$PAGE->set_context($modulecontext);
-$PAGE->requires->jquery();
-$PAGE->requires->js(new moodle_url('/mod/learninganalytics/assets/ajax.js'));
-$PAGE->requires->css(new moodle_url('/mod/learninganalytics/assets/style.css'));
+
 echo $OUTPUT->header();
 
 echo '<h1>Forum Engagement</h1>';
@@ -70,7 +41,7 @@ $menu = new navigation_menu();
 $menu->create_menu($id);
 
 //One Discussion per Forum
-$singleDiscussions = $library->getSingleDiscussions($course);
+$singleDiscussions = $stats_library->getSingleDiscussions($course);
 $labelsSingleDiscussion = array();
 $countSingleDiscussion = array();
 
@@ -90,7 +61,7 @@ echo $OUTPUT->render($singleDiscussionChart);
 echo '</div>';
 
 //Multiple Discussions per Forum
-$multipleForums = $library->getMultipleDiscussions($course);
+$multipleForums = $stats_library->getMultipleDiscussions($course);
 $labelForums=$multipleForums[0];
 $multipleDiscussions=$multipleForums[1];
 $multiplePosts=$multipleForums[2];
@@ -108,7 +79,7 @@ echo $OUTPUT->render($multipleDiscussionsChart);
 echo '</div>';
 
 //Limited Discussions per Forum
-$limitedForums = $library->getLimitedDiscussions($course);
+$limitedForums = $stats_library->getLimitedDiscussions($course);
 $labelLimited=$limitedForums[0];
 $limitedDiscussions=$limitedForums[1];
 $limitedPosts=$limitedForums[2];

@@ -1,28 +1,24 @@
 <?php
 
-class database_calls{
-    //Figure out how to pass data between this class and ajax
-    public static function getactivities($activity,$courseid){
-        $object=[$activity,$courseid];
-        return  json_encode(array_values($object));
-    }
-
+class course_activity{
+    
     public static function getStudentRecords($course){
         global $DB;
-        //https://stackoverflow.com/questions/22161606/sql-query-for-courses-enrolment-on-moodle
-        //https://docs.moodle.org/dev/New_enrolments_in_2.0
-        //SQL Query to get all students in current course
-        //Finding the current course reduces processing time when getting a student object
-        //Distinct returns only one of every user incase there are any duplicate users
-        //CHECKS:
-        // dynamically that the user is enrolled on a course
-        // the user is not deleted
-        // the user is not suspended
-        // the role shortname is student
-        // the user context is from a course(50) = student
-        // the user enrolment has not ended && status = 0(active)
-        // the course id is the current course
-        // the user is not enrolled as a guest or optional enrollment
+        /*  https://stackoverflow.com/questions/22161606/sql-query-for-courses-enrolment-on-moodle
+            https://docs.moodle.org/dev/New_enrolments_in_2.0
+        SQL Query to get all students in current course
+        Finding the current course reduces processing time when getting a student object
+        Distinct returns only one of every user incase there are any duplicate users
+        CHECKS:
+            --the user is enrolled on a course
+            --the user is not deleted
+            --the user is not suspended
+            --the role shortname is student
+            --the user context is from a course(50) = student
+            --the user enrolment has not ended && status = 0(active)
+            --the course id is the current course
+            --the user is not enrolled as a guest or optional enrollment
+        */
         $student_records = $DB->get_records_sql('   SELECT DISTINCT u.id AS userid, c.id AS courseid
                                                     FROM mdl_user u
                                                     JOIN mdl_user_enrolments ue ON ue.userid = u.id
@@ -149,7 +145,7 @@ class database_calls{
         $participants_count=0;
         $quiz_result = array();
 
-        $db = new database_calls;
+        $db = new course_activity;
         $quizzes = $db->getQuizzes($course);
 
         $quiz_result= array();
@@ -180,7 +176,7 @@ class database_calls{
         $quiz_completions=array();
         $uncompleted=array();
 
-        $db = new database_calls;
+        $db = new course_activity;
         $quizzes = $db->getQuizzes($course);
 
         foreach($quizzes as $quiz){
