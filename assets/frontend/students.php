@@ -23,10 +23,8 @@
  */
 
 require(__DIR__.'/../../context.php');
-require_once(__DIR__.'/../../stats_library.php');
-require_once(__DIR__.'/../../activity_library.php');
 
-$stats_library = new course_activity();
+$profiles = $activity_library->getStudents($course);
 
 $PAGE->set_url('/mod/learninganalytics/assets/frontend/activities.php', array('id' => $cm->id));
 
@@ -36,28 +34,29 @@ echo '<h1>Enrolled Students</h1>';
  
 //menu to select pages
 $menu = new navigation_menu();
-$menu->create_menu($id);
-
+$menu->create_menu($id,$course,$USER);
 
 //table displays every enrolled student
-$activity_library = new student_activity();
-$profiles = $activity_library->getStudents($course);
-
-$table = new html_table();
-$table->head = array('Username','First Name', 'Last Name', 'Last Login', 'Action',);
-foreach ($profiles as $prof) {
+if($isStudent == false){
     
-    $username = $prof->u_username;
-    $first_name = $prof->u_fname;
-    $last_name = $prof->u_lname;
-    $session = $prof->u_lastlogin;
+    $table = new html_table();
+    $table->head = array('Username','First Name', 'Last Name', 'Last Login', 'Action',);
+    foreach ($profiles as $prof) {
+        
+        $username = $prof->u_username;
+        $first_name = $prof->u_fname;
+        $last_name = $prof->u_lname;
+        if($prof->u_lastlogin){
+            $session = date("m-d-Y",$prof->u_lastlogin);
+        }else{
+            $session = null;
+        }
+        $dir = "/mod/learninganalytics/assets/frontend/student.php?id=$id"."&u=$prof->userid";
+        $link = html_writer::link($CFG->wwwroot.$dir,'View');
 
-    $dir = "/mod/learninganalytics/assets/frontend/student.php?id=$id"."&u=$prof->userid";
-    $link = html_writer::link($CFG->wwwroot.$dir,'View');
+        $table->data[] = array($username, $first_name, $last_name, $session, $link);
+    }
 
-    $table->data[] = array($username, $first_name, $last_name, $session, $link);
+    echo html_writer::table($table);
 }
-
-echo html_writer::table($table);
-
 echo $OUTPUT->footer();

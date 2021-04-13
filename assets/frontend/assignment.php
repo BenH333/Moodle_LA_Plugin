@@ -34,7 +34,7 @@ echo '<h1>Assignment Engagement</h1>';
  
 //menu to select pages
 $menu = new navigation_menu();
-$menu->create_menu($id);
+$menu->create_menu($id,$course,$USER);
 
 [$labels, $assignTimeCount] = $stats_library->getAssignmentSubmissionTime($course);
 $chart = $charts->assignments($assignTimeCount,$labels);

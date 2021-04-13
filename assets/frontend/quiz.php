@@ -29,7 +29,7 @@ echo $OUTPUT->header();
 
 echo '<h1>Quiz Engagement</h1>';//menu to select pages
 $menu = new navigation_menu();
-$menu->create_menu($id);
+$menu->create_menu($id,$course,$USER);
 
 $student_records = $stats_library->getStudentRecords($course);
 
@@ -41,7 +41,7 @@ foreach($quiz_result as $key=>$quiz){
 }
 
 $quiz_grades_chart = $charts->quiz_grades($quiz_result,$attempts,$labels);
-echo '<div class="overall_activity">';
+echo '<div class="resource_access">';
 echo $OUTPUT->render($quiz_grades_chart);
 echo '</div>';
 
@@ -50,7 +50,7 @@ echo '</div>';
 
 $completion_chart = $charts->quiz_attempts($quiz_attempts,$no_attempts,$labels); 
 
-echo '<div class="overall_activity">';
+echo '<div class="submissions">';
 echo $OUTPUT->render($completion_chart);
 echo '</div>';
 

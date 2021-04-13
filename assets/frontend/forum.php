@@ -27,8 +27,10 @@
 require(__DIR__.'/../../context.php');
 require_once(__DIR__.'/../../stats_library.php');
 require_once(__DIR__.'/../menu/navigation_menu.php');
+require_once(__DIR__.'/../charts/render_activity_charts.php');
 
 $stats_library = new course_activity();
+$charts = new render_activity_charts();
 
 $PAGE->set_url('/mod/learninganalytics/assets/frontend/forum.php', array('id' => $cm->id));
 
@@ -38,61 +40,33 @@ echo '<h1>Forum Engagement</h1>';
  
 //menu to select pages
 $menu = new navigation_menu();
-$menu->create_menu($id);
+$menu->create_menu($id,$course,$USER);
 
-//One Discussion per Forum
-$singleDiscussions = $stats_library->getSingleDiscussions($course);
-$labelsSingleDiscussion = array();
-$countSingleDiscussion = array();
-
-foreach($singleDiscussions as $singleDiscussion){
-    array_push($labelsSingleDiscussion, $singleDiscussion[0]);
-    array_push($countSingleDiscussion, $singleDiscussion[1]);
-}
-
-$singleDiscussionChart = new core\chart_bar();
-$seriesPosts = new \core\chart_series('Posts', $countSingleDiscussion);
-$singleDiscussionChart->add_series($seriesPosts);
-$singleDiscussionChart->set_labels($labelsSingleDiscussion);
-$singleDiscussionChart->set_title('Posts in Single Discussion Forums');
-
-echo '<div class="overall_activity">';
-echo $OUTPUT->render($singleDiscussionChart);
-echo '</div>';
-
-//Multiple Discussions per Forum
+// Multiple Discussions per Forum
 $multipleForums = $stats_library->getMultipleDiscussions($course);
-$labelForums=$multipleForums[0];
-$multipleDiscussions=$multipleForums[1];
-$multiplePosts=$multipleForums[2];
 
-$multDiscSeries = new \core\chart_series('Discussions',$multipleDiscussions);
-$multDiscPostSeries = new \core\chart_series('Posts',$multiplePosts);
-
-$multipleDiscussionsChart = new core\chart_bar();
-$multipleDiscussionsChart->set_labels($labelForums);
-$multipleDiscussionsChart->add_series($multDiscSeries);
-$multipleDiscussionsChart->add_series($multDiscPostSeries);
+$multipleDiscussionsChart = $charts->multi_discussion_forum($multipleForums);
 
 echo '<div class="overall_activity">';
 echo $OUTPUT->render($multipleDiscussionsChart);
 echo '</div>';
 
-//Limited Discussions per Forum
+// One Discussion per Forum
+$singleDiscussions = $stats_library->getSingleDiscussions($course);
+
+$singleDiscussionChart = $charts->single_discussion_forum($singleDiscussions);
+
+echo '<div class="submissions">';
+echo $OUTPUT->render($singleDiscussionChart);
+echo '</div>';
+
+
+
+// Limited Discussions per Forum
 $limitedForums = $stats_library->getLimitedDiscussions($course);
-$labelLimited=$limitedForums[0];
-$limitedDiscussions=$limitedForums[1];
-$limitedPosts=$limitedForums[2];
 
-$limitedDiscSeries = new \core\chart_series('Discussions',$limitedDiscussions);
-$limitedDiscPostSeries = new \core\chart_series('Posts',$limitedPosts);
-
-$limitedDiscussionsChart = new core\chart_bar();
-$limitedDiscussionsChart->set_labels($labelLimited);
-$limitedDiscussionsChart->add_series($limitedDiscSeries);
-$limitedDiscussionsChart->add_series($limitedDiscPostSeries);
-
-echo '<div class="overall_activity">';
+$limitedDiscussionsChart = $charts->limited_discussion_forum($limitedForums);
+echo '<div class="resource_access">';
 echo $OUTPUT->render($limitedDiscussionsChart);
 echo '</div>';
 

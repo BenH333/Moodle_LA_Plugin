@@ -19,30 +19,33 @@ class course_activity{
             --the course id is the current course
             --the user is not enrolled as a guest or optional enrollment
         */
-        $student_records = $DB->get_records_sql('   SELECT DISTINCT u.id AS userid, c.id AS courseid
-                                                    FROM mdl_user u
-                                                    JOIN mdl_user_enrolments ue ON ue.userid = u.id
-                                                    JOIN mdl_enrol e ON e.id = ue.enrolid
-                                                    JOIN mdl_role_assignments ra ON ra.userid = u.id
-                                                    JOIN mdl_context ct ON ct.id = ra.contextid AND ct.contextlevel = 50
-                                                    JOIN mdl_course c ON c.id = ct.instanceid AND e.courseid ='.$course->id.'
-                                                    JOIN mdl_role r ON r.id = ra.roleid AND r.shortname = "student"
+        $student_records = $DB->get_records_sql("   SELECT DISTINCT u.id AS userid, c.id AS courseid
+                                                    FROM {user} u
+                                                    JOIN {user_enrolments} ue ON ue.userid = u.id
+                                                    JOIN {enrol} e ON e.id = ue.enrolid
+                                                    JOIN {role_assignments} ra ON ra.userid = u.id
+                                                    JOIN {context} ct ON ct.id = ra.contextid AND ct.contextlevel = 50
+                                                    JOIN {course} c ON c.id = ct.instanceid AND e.courseid =$course->id
+                                                    JOIN {role} r ON r.id = ra.roleid AND r.shortname = 'student'
                                                     WHERE e.status = 0 AND u.suspended = 0 AND u.deleted = 0
                                                     AND (ue.timeend = 0 OR ue.timeend > UNIX_TIMESTAMP(NOW())) AND ue.status = 0
-                                                ');
+                                                ");
+
+       
         return $student_records;
     }
 
     public static function courseAccess($student_records,$course){
-        //retrieve all course "clicks" from database
+        //retrieve all course interactions from database
 
         global $DB;
-        $students = array_keys($student_records);
-
+        
         $course_views = 0;
         $time_created = [];
 
+        $students = array_keys($student_records);
         list($insql,$inparams) = $DB->get_in_or_equal($students);
+
         $sql = "SELECT * FROM {logstore_standard_log} WHERE courseid=$course->id AND target LIKE 'course' AND component LIKE 'core' AND userid $insql";
         $course_logs = $DB->get_records_sql($sql,$inparams);
         $course_views = count($course_logs);
@@ -61,10 +64,10 @@ class course_activity{
         $students = array_keys($student_records);
         $module_names = [];
         $module_usage = [];
-
+        
         //Select course modules id from current course
         $modules = $DB->get_records_sql('   SELECT DISTINCT m.module AS m_id
-                                            FROM mdl_course_modules m
+                                            FROM {course_modules} m
                                             WHERE visible=1 AND course='.$course->id);
 
         $modules = json_decode(json_encode($modules), true);
@@ -75,7 +78,7 @@ class course_activity{
             foreach($instances as $instance){
                 $activity_module = $DB->get_record('modules',array('id' =>$instance->module)); //get module name e.g. quiz or forum
 
-                if($activity_module->name != 'assign' && $activity_module->name != 'assignment'){
+                if($activity_module->name != 'assign' && $activity_module->name != 'assignment' && $activity_module->name != 'learninganalytics'){
                     $dynamic_activity_modules_data = $DB->get_record($activity_module->name,array('id' =>$instance->instance)); 
                     $module_name = $dynamic_activity_modules_data->name;
                     list($insql,$inparams) = $DB->get_in_or_equal($students);
@@ -98,18 +101,18 @@ class course_activity{
         $non_submissions =0;
 
         //get all assignments from course
-        $assign_modules = $DB->get_records_sql("SELECT * FROM mdl_assign WHERE course=$course->id");
+        $assign_modules = $DB->get_records_sql("SELECT * FROM {assign} WHERE course=$course->id");
 
         //all assignments = number of students * assignments
         $required_submissions = count(array_keys($student_records)) * count($assign_modules);
 
         // select 'submitted' assign_submission id from current course
-        $submitted_assign_modules = $DB->get_records_sql('  SELECT s.id AS submit, a.duedate AS a_due, s.timemodified AS s_sub
-                                                            FROM mdl_course_modules cm
-                                                            JOIN mdl_modules m ON m.id = cm.module
-                                                            JOIN mdl_assign a ON a.course = cm.course
-                                                            JOIN mdl_assign_submission s ON s.assignment = a.id
-                                                            WHERE cm.visible=1 AND m.name="assign" AND s.status="submitted" AND cm.course='.$course->id );
+        $submitted_assign_modules = $DB->get_records_sql("  SELECT s.id AS submit, a.duedate AS a_due, s.timemodified AS s_sub
+                                                            FROM {course_modules} cm
+                                                            JOIN {modules} m ON m.id = cm.module
+                                                            JOIN {assign} a ON a.course = cm.course
+                                                            JOIN {assign_submission} s ON s.assignment = a.id
+                                                            WHERE cm.visible=1 AND m.name='assign' AND s.status='submitted' AND cm.course=$course->id");
 
         $submitted_assign_modules = json_decode(json_encode($submitted_assign_modules), true);
 
@@ -129,10 +132,10 @@ class course_activity{
         global $DB;
 
         $quizzes = $DB->get_records_sql("   SELECT cm.id AS cm_id, cm.module AS cm_module, cm.instance AS cm_instance, m.id AS m_id, m.name AS m_name, q.name AS q_name, q.id AS q_id, q.grade AS quiz_grade
-        FROM mdl_course_modules cm
-        JOIN mdl_modules m ON m.id = cm.module
-        JOIN mdl_quiz q on q.id = cm.instance
-        WHERE cm.visible=1 AND m.name='quiz' AND cm.course=$course->id");
+                                            FROM {course_modules} cm
+                                            JOIN {modules} m ON m.id = cm.module
+                                            JOIN {quiz} q on q.id = cm.instance
+                                            WHERE cm.visible=1 AND m.name='quiz' AND cm.course=$course->id");
 
         $quizzes = json_decode(json_encode($quizzes), true);
         return $quizzes;
@@ -197,9 +200,9 @@ class course_activity{
         //There are many discussions
         //There are many posts per discussion
         $forums = $DB->get_records_sql(" SELECT f.id AS forum_id, f.name AS forum_name, m.id AS module_id, cm.id AS course_module_id
-                                         FROM mdl_forum f
-                                         JOIN mdl_modules m ON m.name='forum'
-                                         JOIN mdl_course_modules cm ON cm.id=m.id
+                                         FROM {forum} f
+                                         JOIN {modules} m ON m.name='forum'
+                                         JOIN {course_modules} cm ON cm.id=m.id
                                          WHERE f.course=$course->id AND type='general' OR type='blog' AND cm.visible=1");
 
         $forums = json_decode(json_encode($forums), true);
@@ -213,8 +216,8 @@ class course_activity{
             array_push($labelForums, $forum['forum_name']);
 
             $discussions = $DB->get_records_sql("SELECT fd.id AS forum_discussion_id, fd.name AS forum_name
-                                                 FROM mdl_forum_discussions fd
-                                                 JOIN mdl_forum f ON f.id = fd.forum
+                                                 FROM {forum_discussions} fd
+                                                 JOIN {forum} f ON f.id = fd.forum
                                                  WHERE f.id=$forumId AND f.course=$course->id");
             $discussions = json_decode(json_encode($discussions), true);
             array_push($multipleDiscussions, count($discussions));
@@ -226,10 +229,10 @@ class course_activity{
                     $d_id = $discussion['forum_discussion_id'];
 
                     $posts = $DB->get_records_sql(" SELECT fp.id as post_id
-                                                    FROM mdl_forum_posts fp 
-                                                    JOIN mdl_forum_discussions fd ON fp.discussion = fd.id
+                                                    FROM {forum_posts} fp 
+                                                    JOIN {forum_discussions} fd ON fp.discussion = fd.id
                                                     WHERE fd.course=$course->id AND fd.forum=$forumId AND fp.discussion=$d_id
-                                                ");
+                                                 ");
                     $posts = json_decode(json_encode($posts), true);
                     array_push($multiplePosts, count($posts));
                 }
@@ -244,9 +247,9 @@ class course_activity{
         $forumPosts=array();
 
         $forums = $DB->get_records_sql(" SELECT f.id AS forum_id, f.name AS name, m.id AS module_id, cm.id AS course_module_id
-                                         FROM mdl_forum f
-                                         JOIN mdl_modules m ON m.name='forum'
-                                         JOIN mdl_course_modules cm ON cm.id=m.id
+                                         FROM {forum} f
+                                         JOIN {modules} m ON m.name='forum'
+                                         JOIN {course_modules} cm ON cm.id=m.id
                                          WHERE f.course=$course->id AND type='single' OR type='qanda' AND cm.visible=1");
 
         $forums = json_decode(json_encode($forums), true);
@@ -254,8 +257,8 @@ class course_activity{
         foreach ($forums as $forum){
             $forumId = $forum['forum_id'];
             $posts = $DB->get_records_sql(" SELECT fd.id AS forum_disc_id, fp.id as forum_id
-                                            FROM mdl_forum_discussions fd
-                                            JOIN mdl_forum_posts fp ON fp.discussion = fd.id
+                                            FROM {forum_discussions} fd
+                                            JOIN {forum_posts} fp ON fp.discussion = fd.id
                                             WHERE fd.course=$course->id AND fd.forum=$forumId
                                             ");
 
@@ -274,9 +277,9 @@ class course_activity{
         //There is one discussion per user
         //There are many posts per discussion
         $forums = $DB->get_records_sql(" SELECT f.id AS forum_id, f.name AS forum_name, m.id AS module_id, cm.id AS course_module_id
-                                         FROM mdl_forum f
-                                         JOIN mdl_modules m ON m.name='forum'
-                                         JOIN mdl_course_modules cm ON cm.id=m.id
+                                         FROM {forum} f
+                                         JOIN {modules} m ON m.name='forum'
+                                         JOIN {course_modules} cm ON cm.id=m.id
                                          WHERE f.course=$course->id AND type='eachuser' AND cm.visible=1");
 
         $forums = json_decode(json_encode($forums), true);
@@ -289,8 +292,8 @@ class course_activity{
             $forumId = $forum['forum_id'];
             array_push($labelForums, $forum['forum_name']);
             $discussions = $DB->get_records_sql("SELECT fd.id AS forum_discussion_id, fd.name AS forum_name
-                                                 FROM mdl_forum_discussions fd
-                                                 JOIN mdl_forum f ON f.id = fd.forum
+                                                 FROM {forum_discussions} fd
+                                                 JOIN {forum} f ON f.id = fd.forum
                                                  WHERE f.id=$forumId AND f.course=$course->id");
             $discussions = json_decode(json_encode($discussions), true);
             array_push($multipleDiscussions, count($discussions));
@@ -302,8 +305,8 @@ class course_activity{
                     $d_id = $discussion['forum_discussion_id'];
 
                     $posts = $DB->get_records_sql(" SELECT fp.id as post_id
-                                                    FROM mdl_forum_posts fp 
-                                                    JOIN mdl_forum_discussions fd ON fp.discussion = fd.id
+                                                    FROM {forum_posts} fp 
+                                                    JOIN {forum_discussions} fd ON fp.discussion = fd.id
                                                     WHERE fd.course=$course->id AND fd.forum=$forumId AND fp.discussion=$d_id
                                                 ");
                     $posts = json_decode(json_encode($posts), true);
@@ -327,18 +330,18 @@ class course_activity{
 
         // Get assignments from current course
         $assign_modules = $DB->get_records_sql(" SELECT a.id AS a_id, a.name AS name, a.course AS course, m.name AS m_name
-                                                 FROM mdl_assign a
-                                                 JOIN mdl_course_modules cm ON a.course=cm.course
-                                                 JOIN mdl_modules m ON m.id = cm.module
+                                                 FROM {assign} a
+                                                 JOIN {course_modules} cm ON a.course=cm.course
+                                                 JOIN {modules} m ON m.id = cm.module
                                                  WHERE cm.visible=1 AND cm.course=$course->id AND m.name='assign' " );
         $assign_modules = json_decode(json_encode($assign_modules), true);
         
         //get each submitted assignment and its date
         $submissions = $DB->get_records_sql("  SELECT s.id AS s_id, cm.id AS id, cm.module AS cm_id, m.id AS m_id, m.name AS m_name, a.id AS a_id, a.name AS a_name, a.course AS course, s.timecreated AS s_sub
-                                                            FROM mdl_assign_submission s 
-                                                            JOIN mdl_assign a ON a.id = s.assignment
-                                                            JOIN mdl_course_modules cm ON a.course=cm.course
-                                                            JOIN mdl_modules m ON m.id = cm.module
+                                                            FROM {assign_submission} s 
+                                                            JOIN {assign} a ON a.id = s.assignment
+                                                            JOIN {course_modules} cm ON a.course=cm.course
+                                                            JOIN {modules} m ON m.id = cm.module
                                                             WHERE cm.visible=1 AND m.name='assign' AND s.status='submitted' AND cm.course=$course->id ");
 
         $submissions = json_decode(json_encode($submissions), true);

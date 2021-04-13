@@ -67,6 +67,7 @@ class render_student_charts{
 
         $seriesDiscussions = new \core\chart_series('Discussions', array_values($discussions));
         $seriesPosts = new \core\chart_series('Posts', array_values($posts));
+        $forumChart->set_title("Forum Content from the Student");
 
         $forumChart->add_series($seriesDiscussions);
         $forumChart->add_series($seriesPosts);

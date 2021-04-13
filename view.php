@@ -28,17 +28,10 @@ $PAGE->set_url('/mod/learninganalytics/view.php', array('id' => $cm->id));
 
 //header
 echo $OUTPUT->header();
-// $templateContext = (object)[
-//     'title' => 'Overall Student Engagement',
-//     'student_count' => count($students),
-//     'course_views' => $course_views,
-//     'created_at' => $time_created,
-// ];
-//----
 
 echo '<h1>Student Engagement</h1>';
 $menu = new navigation_menu();
-$menu->create_menu($id);
+$menu->create_menu($id,$course,$USER);
 
 $activities = get_array_of_activities($course->id);
 

@@ -5,19 +5,22 @@
 canvas{
     margin: auto;
 }
-.overall_activity{
+
+@media only screen and (min-width: 1300px) {
+  .overall_activity{
     width: 66.7%!important;
     max-height: 20%!important;
     margin:auto;
 }
-.resource_access, .submissions {
-    width: 33%!important;
-    height: 33%!important;
+  .resource_access, .submissions {
+    width: 33%;
+    height: 33%;
     margin-left:11%;
     display:inline-block;
     /* margin-left:33%;
     margin-right:33%; */
-}
+  }
+} 
 
 /* Sub Menu */
 .menu {

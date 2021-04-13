@@ -37,4 +37,6 @@ $PAGE->requires->css(new moodle_url('/mod/learninganalytics/assets/style.css'));
 
 $stats_library = new course_activity();
 $charts = new render_activity_charts();
+$activity_library = new student_activity();
+$isStudent = $activity_library->isStudent($course,$USER);
 ?>

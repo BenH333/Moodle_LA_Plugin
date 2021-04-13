@@ -3,7 +3,7 @@
     Class functions return information on individual students
 */
 class student_activity{
-
+    
     public static function getStudents($course){
         global $DB;
         /*  https://stackoverflow.com/questions/22161606/sql-query-for-courses-enrolment-on-moodle
@@ -21,18 +21,40 @@ class student_activity{
             --the course id is the current course
             --the user is not enrolled as a guest or optional enrollment
         */
-        $student_records = $DB->get_records_sql('   SELECT DISTINCT u.id AS userid, c.id AS courseid, u.firstname AS u_fname, u.lastname AS u_lname, u.lastlogin AS u_lastlogin, u.username AS u_username
-                                                    FROM mdl_user u
-                                                    JOIN mdl_user_enrolments ue ON ue.userid = u.id
-                                                    JOIN mdl_enrol e ON e.id = ue.enrolid
-                                                    JOIN mdl_role_assignments ra ON ra.userid = u.id
-                                                    JOIN mdl_context ct ON ct.id = ra.contextid AND ct.contextlevel = 50
-                                                    JOIN mdl_course c ON c.id = ct.instanceid AND e.courseid ='.$course->id.'
-                                                    JOIN mdl_role r ON r.id = ra.roleid AND r.shortname = "student"
+        $student_records = $DB->get_records_sql("   SELECT DISTINCT u.id AS userid, c.id AS courseid, u.firstname AS u_fname, u.lastname AS u_lname, u.lastlogin AS u_lastlogin, u.username AS u_username
+                                                    FROM {user} u
+                                                    JOIN {user_enrolments} ue ON ue.userid = u.id
+                                                    JOIN {enrol} e ON e.id = ue.enrolid
+                                                    JOIN {role_assignments} ra ON ra.userid = u.id
+                                                    JOIN {context} ct ON ct.id = ra.contextid AND ct.contextlevel = 50
+                                                    JOIN {course} c ON c.id = ct.instanceid AND e.courseid ='$course->id'
+                                                    JOIN {role} r ON r.id = ra.roleid AND r.shortname = 'student'
                                                     WHERE e.status = 0 AND u.suspended = 0 AND u.deleted = 0
                                                     AND (ue.timeend = 0 OR ue.timeend > UNIX_TIMESTAMP(NOW())) AND ue.status = 0
-                                                ');
+                                                ");
+                                                
         return $student_records;
+    }
+
+    public static function isStudent($course, $user){
+        global $DB;
+        // print_r($course->id);
+        $student_records = $DB->get_records_sql("   SELECT DISTINCT u.id AS userid, c.id AS courseid, u.firstname AS u_fname, u.lastname AS u_lname, u.lastlogin AS u_lastlogin, u.username AS u_username
+                                                    FROM {user} u
+                                                    JOIN {user_enrolments} ue ON ue.userid = u.id
+                                                    JOIN {enrol} e ON e.id = ue.enrolid
+                                                    JOIN {role_assignments} ra ON ra.userid = u.id
+                                                    JOIN {context} ct ON ct.id = ra.contextid AND ct.contextlevel = 50
+                                                    JOIN {course} c ON c.id = ct.instanceid AND e.courseid ='$course->id'
+                                                    JOIN {role} r ON r.id = ra.roleid AND r.shortname = 'student'
+                                                    WHERE e.status = 0 AND u.suspended = 0 AND u.deleted = 0
+                                                    AND (ue.timeend = 0 OR ue.timeend > UNIX_TIMESTAMP(NOW())) AND ue.status = 0 AND u.id=$user->id
+                                                ");
+        if(empty($student_records)){
+            return false;
+        }else{
+            return true;
+        }
     }
 
     public static function getStudentFromId($student_id){
@@ -124,18 +146,18 @@ class student_activity{
 
         // Get assignments from current course
         $assign_modules = $DB->get_records_sql(" SELECT a.id AS a_id, a.name AS name, a.course AS course, m.name AS m_name
-                                                 FROM mdl_assign a
-                                                 JOIN mdl_course_modules cm ON a.course=cm.course
-                                                 JOIN mdl_modules m ON m.id = cm.module
+                                                 FROM {assign} a
+                                                 JOIN {course_modules} cm ON a.course=cm.course
+                                                 JOIN {modules} m ON m.id = cm.module
                                                  WHERE cm.visible=1 AND cm.course=$course->id AND m.name='assign' " );
         $assign_modules = json_decode(json_encode($assign_modules), true);
         
         //get each submitted assignment and its date
         $submissions = $DB->get_records_sql("  SELECT s.id AS s_id, s.userid AS s_user, cm.id AS id, cm.module AS cm_id, m.id AS m_id, m.name AS m_name, a.id AS a_id, a.name AS a_name, a.course AS course, s.timemodified AS s_sub
-                                                            FROM mdl_assign_submission s 
-                                                            JOIN mdl_assign a ON a.id = s.assignment
-                                                            JOIN mdl_course_modules cm ON a.course=cm.course
-                                                            JOIN mdl_modules m ON m.id = cm.module
+                                                            FROM {assign_submission} s 
+                                                            JOIN {assign} a ON a.id = s.assignment
+                                                            JOIN {course_modules} cm ON a.course=cm.course
+                                                            JOIN {modules} m ON m.id = cm.module
                                                             WHERE cm.visible=1 AND m.name='assign' AND s.status='submitted' AND cm.course=$course->id AND s.userid=$student_id");
 
         $submissions = json_decode(json_encode($submissions), true);

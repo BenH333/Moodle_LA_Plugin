@@ -97,7 +97,13 @@ class render_activity_charts{
         $quiz_grades_chart->add_series($seriesC);
         $quiz_grades_chart->add_series($seriesD);
         $quiz_grades_chart->set_stacked(true);
-        $quiz_grades_chart->set_title("Performance Distribution per Quiz with: $attempts overall attempts");
+        $yaxis = new core\chart_axis;
+        $yaxis->set_stepsize(1);
+        $yaxis->set_min(0);
+        $yaxis->set_label("Quiz Score");
+        $quiz_grades_chart->set_yaxis($yaxis);
+        
+        $quiz_grades_chart->set_title("Quiz scores distribution with: $attempts submissions");
         $quiz_grades_chart->set_labels($labels);
 
         return $quiz_grades_chart;
@@ -110,7 +116,8 @@ class render_activity_charts{
         $completion_chart = new core\chart_bar();
         $completion_chart->set_labels($labels);
         $completion_chart->set_stacked(true);
-        $completion_chart->set_title("Percentage of students attempts");
+        $completion_chart->get_yaxis(0, true)->set_label("Attempts by Students %");
+        $completion_chart->set_title("Quiz Completion");
         $completion_chart->add_series($seriesAttempted);
         $completion_chart->add_series($seriesNotAttempted);
         return $completion_chart;
@@ -119,8 +126,12 @@ class render_activity_charts{
     public static function assignments($assignTimeCount,$labels){
         $chart = new \core\chart_line();
         $chart->set_labels($labels);
-        $chart->set_title("Coursework Submissions over Time");
-        
+        $chart->set_title("Assignment Submissions with Dates");
+        $chart->get_yaxis(0, true)->set_label("Number of Submissions");
+        $yaxis = new core\chart_axis;
+        $yaxis->set_stepsize(1);
+        $yaxis->set_min(0);
+        $chart->set_yaxis($yaxis);
         foreach($assignTimeCount as $assignment){
             //assignment[0] == name
             //assignment[1] == time & count
@@ -139,5 +150,69 @@ class render_activity_charts{
             
         }
         return $chart;
+    }
+
+    public static function single_discussion_forum($singleDiscussions){
+        $labelsSingleDiscussion = array();
+        $countSingleDiscussion = array();
+
+        foreach($singleDiscussions as $singleDiscussion){
+            array_push($labelsSingleDiscussion, $singleDiscussion[0]);
+            array_push($countSingleDiscussion, $singleDiscussion[1]);
+        }
+
+        $singleDiscussionChart = new core\chart_bar();
+        $seriesPosts = new \core\chart_series('Posts', $countSingleDiscussion);
+        $singleDiscussionChart->add_series($seriesPosts);
+        $singleDiscussionChart->set_labels($labelsSingleDiscussion);
+        $yaxis = new core\chart_axis;
+        $yaxis->set_stepsize(1);
+        $yaxis->set_min(0);
+        $yaxis->set_label("Count");
+        $singleDiscussionChart->set_yaxis($yaxis);
+        $singleDiscussionChart->set_title('Posts in Single Discussion Forums');
+        return $singleDiscussionChart;
+    }
+
+    public static function multi_discussion_forum($multipleForums){
+        $labelForums=$multipleForums[0];
+        $multipleDiscussions=$multipleForums[1];
+        $multiplePosts=$multipleForums[2];
+
+        $multDiscSeries = new \core\chart_series('Discussions',$multipleDiscussions);
+        $multDiscPostSeries = new \core\chart_series('Posts',$multiplePosts);
+        
+        $multipleDiscussionsChart = new core\chart_bar();
+        $multipleDiscussionsChart->set_labels($labelForums);
+        $multipleDiscussionsChart->add_series($multDiscSeries);
+        $multipleDiscussionsChart->add_series($multDiscPostSeries);
+        $multipleDiscussionsChart->set_title('Standard Forums');
+        $yaxis = new core\chart_axis;
+        $yaxis->set_stepsize(1);
+        $yaxis->set_min(0);
+        $yaxis->set_label("Count");
+        $multipleDiscussionsChart->set_yaxis($yaxis);
+        return $multipleDiscussionsChart;
+    }
+
+    public static function limited_discussion_forum($limitedForums){
+        $labelLimited=$limitedForums[0];
+        $limitedDiscussions=$limitedForums[1];
+        $limitedPosts=$limitedForums[2];
+
+        $limitedDiscSeries = new \core\chart_series('Discussions',$limitedDiscussions);
+        $limitedDiscPostSeries = new \core\chart_series('Posts',$limitedPosts);
+
+        $limitedDiscussionsChart = new core\chart_bar();
+        $limitedDiscussionsChart->set_labels($labelLimited);
+        $limitedDiscussionsChart->add_series($limitedDiscSeries);
+        $limitedDiscussionsChart->add_series($limitedDiscPostSeries);
+        $limitedDiscussionsChart->set_title('Each Student Provides One Discussion');
+        $yaxis = new core\chart_axis;
+        $yaxis->set_stepsize(1);
+        $yaxis->set_min(0);
+        $yaxis->set_label("Count");
+        $limitedDiscussionsChart->set_yaxis($yaxis);
+        return $limitedDiscussionsChart;
     }
 }
