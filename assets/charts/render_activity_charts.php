@@ -8,7 +8,7 @@ class render_activity_charts{
     */
     public static function course_views($dates,$date_count){
         $course_views_chart = new core\chart_line;
-        $course_series = new core\chart_series('Number of Course Views',$date_count);
+        $course_series = new core\chart_series('Number of Course Logins',$date_count);
         $course_views_chart->set_title('Time of Course Access');
         $course_views_chart->add_series($course_series);
         $yaxis = new core\chart_axis;
