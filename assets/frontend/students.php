@@ -23,35 +23,40 @@
  */
 
 require(__DIR__.'/../../context.php');
-$PAGE->set_url('/mod/learninganalytics/assets/frontend/quiz.php', array('id' => $cm->id));
+
+$profiles = $activity_library->getStudents($course);
+
+$PAGE->set_url('/mod/learninganalytics/assets/frontend/activities.php', array('id' => $cm->id));
 
 echo $OUTPUT->header();
 
-echo '<h1>Quiz Engagement</h1>';//menu to select pages
+echo '<h1>Enrolled Students</h1>';
+ 
+//menu to select pages
 $menu = new navigation_menu();
 $menu->create_menu($id,$course,$USER);
 
-$student_records = $stats_library->getStudentRecords($course);
+//table displays every enrolled student
+if($isStudent == false){
+    
+    $table = new html_table();
+    $table->head = array('Username','First Name', 'Last Name', 'Last Login', 'Action',);
+    foreach ($profiles as $prof) {
+        
+        $username = $prof->u_username;
+        $first_name = $prof->u_fname;
+        $last_name = $prof->u_lname;
+        if($prof->u_lastlogin){
+            $session = date("m-d-Y",$prof->u_lastlogin);
+        }else{
+            $session = null;
+        }
+        $dir = "/mod/learninganalytics/assets/frontend/student.php?id=$id"."&u=$prof->userid";
+        $link = html_writer::link($CFG->wwwroot.$dir,'View');
 
-//quiz results
-$labels=array();
-[$attempts, $quiz_result] = $stats_library->quizGrades($course,$student_records);
-foreach($quiz_result as $key=>$quiz){
-    array_push($labels,$key);
+        $table->data[] = array($username, $first_name, $last_name, $session, $link);
+    }
+
+    echo html_writer::table($table);
 }
-
-$quiz_grades_chart = $charts->quiz_grades($quiz_result,$attempts,$labels);
-echo '<div class="resource_access">';
-echo $OUTPUT->render($quiz_grades_chart);
-echo '</div>';
-
-//attempts
-[$quiz_attempts,$no_attempts] = $stats_library->quizCompletion($course, $student_records);
-
-$completion_chart = $charts->quiz_attempts($quiz_attempts,$no_attempts,$labels); 
-
-echo '<div class="submissions">';
-echo $OUTPUT->render($completion_chart);
-echo '</div>';
-
 echo $OUTPUT->footer();

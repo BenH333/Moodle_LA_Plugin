@@ -24,53 +24,50 @@
 
 
 
-require(__DIR__.'/../../../../config.php');
-require_once(__DIR__.'/../../lib.php');
-require_once(__DIR__.'/../../library.php');
-require_once(__DIR__.'/../navigation_menu.php');
-$CFG->cachejs = false;
+require(__DIR__.'/../../context.php');
+require_once(__DIR__.'/../../stats_library.php');
+require_once(__DIR__.'/../menu/navigation_menu.php');
+require_once(__DIR__.'/../charts/render_activity_charts.php');
 
-// Course_module ID, or
-$id = optional_param('id', 0, PARAM_INT);
-
-// ... module instance id.
-$l  = optional_param('l', 0, PARAM_INT);
-
-if ($id) {
-    $cm             = get_coursemodule_from_id('learninganalytics', $id, 0, false, MUST_EXIST);
-    $course         = $DB->get_record('course', array('id' => $cm->course), '*', MUST_EXIST);
-    $moduleinstance = $DB->get_record('learninganalytics', array('id' => $cm->instance), '*', MUST_EXIST);
-} else if ($l) {
-    $moduleinstance = $DB->get_record('learninganalytics', array('id' => $n), '*', MUST_EXIST);
-    $course         = $DB->get_record('course', array('id' => $moduleinstance->course), '*', MUST_EXIST);
-    $cm             = get_coursemodule_from_instance('learninganalytics', $moduleinstance->id, $course->id, false, MUST_EXIST);
-} else {
-    print_error(get_string('missingidandcmid', 'mod_learninganalytics'));
-}
-
-require_login($course, true, $cm);
-
-$modulecontext = context_module::instance($cm->id);
-
-$library = new database_calls();
+$stats_library = new course_activity();
+$charts = new render_activity_charts();
 
 $PAGE->set_url('/mod/learninganalytics/assets/frontend/forum.php', array('id' => $cm->id));
-$PAGE->set_title(format_string($moduleinstance->name));
-$PAGE->set_heading(format_string($course->fullname));
-$PAGE->set_context($modulecontext);
-$PAGE->requires->jquery();
-// $PAGE->requires->js(new moodle_url($CFG->wwwroot.'/mod/learninganalytics/assets/plotly-latest.min.js'));
-$PAGE->requires->js(new moodle_url('/mod/learninganalytics/assets/ajax.js'));
-// $PAGE->requires->js_call_amd('module.js','debug');
-$PAGE->requires->css(new moodle_url('/mod/learninganalytics/assets/style.css'));
+
 echo $OUTPUT->header();
 
 echo '<h1>Forum Engagement</h1>';
  
 //menu to select pages
 $menu = new navigation_menu();
-$menu->create_menu($id);
+$menu->create_menu($id,$course,$USER);
+
+// Multiple Discussions per Forum
+$multipleForums = $stats_library->getMultipleDiscussions($course);
+
+$multipleDiscussionsChart = $charts->multi_discussion_forum($multipleForums);
+
+echo '<div class="overall_activity">';
+echo $OUTPUT->render($multipleDiscussionsChart);
+echo '</div>';
+
+// One Discussion per Forum
+$singleDiscussions = $stats_library->getSingleDiscussions($course);
+
+$singleDiscussionChart = $charts->single_discussion_forum($singleDiscussions);
+
+echo '<div class="submissions">';
+echo $OUTPUT->render($singleDiscussionChart);
+echo '</div>';
 
 
+
+// Limited Discussions per Forum
+$limitedForums = $stats_library->getLimitedDiscussions($course);
+
+$limitedDiscussionsChart = $charts->limited_discussion_forum($limitedForums);
+echo '<div class="resource_access">';
+echo $OUTPUT->render($limitedDiscussionsChart);
+echo '</div>';
 
 echo $OUTPUT->footer();

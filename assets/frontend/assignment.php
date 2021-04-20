@@ -24,51 +24,21 @@
 
 
 
-require(__DIR__.'/../../../../config.php');
-require_once(__DIR__.'/../../lib.php');
-require_once(__DIR__.'/../../library.php');
-require_once(__DIR__.'/../navigation_menu.php');
-$CFG->cachejs = false;
-
-// Course_module ID, or
-$id = optional_param('id', 0, PARAM_INT);
-
-// ... module instance id.
-$l  = optional_param('l', 0, PARAM_INT);
-
-if ($id) {
-    $cm             = get_coursemodule_from_id('learninganalytics', $id, 0, false, MUST_EXIST);
-    $course         = $DB->get_record('course', array('id' => $cm->course), '*', MUST_EXIST);
-    $moduleinstance = $DB->get_record('learninganalytics', array('id' => $cm->instance), '*', MUST_EXIST);
-} else if ($l) {
-    $moduleinstance = $DB->get_record('learninganalytics', array('id' => $n), '*', MUST_EXIST);
-    $course         = $DB->get_record('course', array('id' => $moduleinstance->course), '*', MUST_EXIST);
-    $cm             = get_coursemodule_from_instance('learninganalytics', $moduleinstance->id, $course->id, false, MUST_EXIST);
-} else {
-    print_error(get_string('missing id and cmid', 'mod_learninganalytics'));
-}
-
-require_login($course, true, $cm);
-
-$modulecontext = context_module::instance($cm->id);
-
-$library = new database_calls();
+require(__DIR__.'/../../context.php');
 
 $PAGE->set_url('/mod/learninganalytics/assets/frontend/assignment.php', array('id' => $cm->id));
-$PAGE->set_title(format_string($moduleinstance->name));
-$PAGE->set_heading(format_string($course->fullname));
-$PAGE->set_context($modulecontext);
-$PAGE->requires->jquery();
-$PAGE->requires->js(new moodle_url('/mod/learninganalytics/assets/ajax.js'));
-$PAGE->requires->css(new moodle_url('/mod/learninganalytics/assets/style.css'));
+
 echo $OUTPUT->header();
 
 echo '<h1>Assignment Engagement</h1>';
  
 //menu to select pages
 $menu = new navigation_menu();
-$menu->create_menu($id);
+$menu->create_menu($id,$course,$USER);
 
-
-
+[$labels, $assignTimeCount] = $stats_library->getAssignmentSubmissionTime($course);
+$chart = $charts->assignments($assignTimeCount,$labels);
+echo '<div class="overall_activity">';
+echo $OUTPUT->render($chart);
+echo '</div>';
 echo $OUTPUT->footer();
