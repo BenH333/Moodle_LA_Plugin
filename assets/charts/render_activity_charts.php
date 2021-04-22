@@ -25,10 +25,10 @@ class render_activity_charts{
     */
     public static function resource($course_modules){
         $resource_chart = new core\chart_pie;
-        $resource_series = new core\chart_series("Resource Views", $course_modules[1]);
-        $resource_chart->set_title("Resources Accessed by Students");
+        $resource_series = new core\chart_series("Top 10 Accessed Resources", array_values($course_modules));
+        $resource_chart->set_title("Top 10 Accessed Resources");
         $resource_chart->add_series($resource_series);
-        $resource_chart->set_labels($course_modules[0]);
+        $resource_chart->set_labels(array_keys($course_modules));
         return $resource_chart;
     }
 
