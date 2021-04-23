@@ -30,7 +30,7 @@ $PAGE->set_url('/mod/learninganalytics/assets/frontend/activities.php', array('i
 
 echo $OUTPUT->header();
 
-echo '<h1>Enrolled Students</h1>';
+echo '<h1>Enrolled Students (Only Accessible to Enrolled Staff Members)</h1>';
  
 //menu to select pages
 $menu = new navigation_menu();

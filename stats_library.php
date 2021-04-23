@@ -62,9 +62,8 @@ class course_activity{
     public static function resourceAccess($course, $student_records){
         global $DB;
         $students = array_keys($student_records);
-        $module_names = [];
-        $module_usage = [];
-        
+        $module_top_10 =[];
+
         //Select course modules id from current course
         $modules = $DB->get_records_sql('   SELECT DISTINCT m.module AS m_id
                                             FROM {course_modules} m
@@ -84,13 +83,18 @@ class course_activity{
                     list($insql,$inparams) = $DB->get_in_or_equal($students);
                     $sql = "SELECT id FROM {logstore_standard_log} WHERE courseid=$course->id AND objectid=$instance->instance AND objecttable='$activity_module->name' AND action='viewed' AND userid $insql";
                     $module_views = count($DB->get_records_sql($sql,$inparams));
-                    array_push($module_names,$module_name);
-                    array_push($module_usage,$module_views);
+                    $module_top_10[$module_name] = $module_views; 
                 }
             }
             
         }
-        return [$module_names,$module_usage];
+
+        function maxNitems($array, $n=10){
+            asort($array);
+            return array_slice(array_reverse($array, true),0,$n,true);
+        }
+        $top10= maxNitems($module_top_10);
+        return $top10;
 
     }
 
@@ -196,6 +200,7 @@ class course_activity{
 
     public static function getMultipleDiscussions($course){
         global $DB;
+        
         //There are many forums
         //There are many discussions
         //There are many posts per discussion
@@ -203,8 +208,8 @@ class course_activity{
                                          FROM {forum} f
                                          JOIN {modules} m ON m.name='forum'
                                          JOIN {course_modules} cm ON cm.id=m.id
-                                         WHERE f.course=$course->id AND type='general' OR type='blog' AND cm.visible=1");
-
+                                         WHERE cm.course=$course->id AND type='blog' OR type='general' AND f.course=$course->id AND cm.visible=1");
+        
         $forums = json_decode(json_encode($forums), true);
         
         $labelForums=array();
@@ -250,10 +255,9 @@ class course_activity{
                                          FROM {forum} f
                                          JOIN {modules} m ON m.name='forum'
                                          JOIN {course_modules} cm ON cm.id=m.id
-                                         WHERE f.course=$course->id AND type='single' OR type='qanda' AND cm.visible=1");
+                                         WHERE cm.course=$course->id AND type='single' OR type='qanda' AND f.course=$course->id AND cm.visible=1");
 
         $forums = json_decode(json_encode($forums), true);
-
         foreach ($forums as $forum){
             $forumId = $forum['forum_id'];
             $posts = $DB->get_records_sql(" SELECT fd.id AS forum_disc_id, fp.id as forum_id

@@ -18,7 +18,7 @@
  * Library of interface functions and constants.
  *
  * @package     mod_learninganalytics
- * @copyright   2021 Ben Hadden
+ * @copyright   2021 Your Name <you@example.com>
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
