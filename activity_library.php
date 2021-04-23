@@ -27,9 +27,9 @@ class student_activity{
                                                     JOIN {enrol} e ON e.id = ue.enrolid
                                                     JOIN {role_assignments} ra ON ra.userid = u.id
                                                     JOIN {context} ct ON ct.id = ra.contextid AND ct.contextlevel = 50
-                                                    JOIN {course} c ON c.id = ct.instanceid AND e.courseid ='$course->id'
+                                                    JOIN {course} c ON c.id = ct.instanceid AND e.courseid = c.id
                                                     JOIN {role} r ON r.id = ra.roleid AND r.shortname = 'student'
-                                                    WHERE e.status = 0 AND u.suspended = 0 AND u.deleted = 0
+                                                    WHERE c.id=$course->id AND e.status = 0 AND u.suspended = 0 AND u.deleted = 0
                                                     AND (ue.timeend = 0 OR ue.timeend > UNIX_TIMESTAMP(NOW())) AND ue.status = 0
                                                 ");
                                                 
@@ -45,9 +45,9 @@ class student_activity{
                                                     JOIN {enrol} e ON e.id = ue.enrolid
                                                     JOIN {role_assignments} ra ON ra.userid = u.id
                                                     JOIN {context} ct ON ct.id = ra.contextid AND ct.contextlevel = 50
-                                                    JOIN {course} c ON c.id = ct.instanceid AND e.courseid ='$course->id'
+                                                    JOIN {course} c ON c.id = ct.instanceid AND e.courseid = c.id
                                                     JOIN {role} r ON r.id = ra.roleid AND r.shortname = 'student'
-                                                    WHERE e.status = 0 AND u.suspended = 0 AND u.deleted = 0
+                                                    WHERE c.id=$course->id AND e.status = 0 AND u.suspended = 0 AND u.deleted = 0
                                                     AND (ue.timeend = 0 OR ue.timeend > UNIX_TIMESTAMP(NOW())) AND ue.status = 0 AND u.id=$user->id
                                                 ");
         if(empty($student_records)){

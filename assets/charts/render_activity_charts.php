@@ -12,7 +12,7 @@ class render_activity_charts{
         $course_views_chart->set_title('Time of Course Access');
         $course_views_chart->add_series($course_series);
         $yaxis = new core\chart_axis;
-        $yaxis->set_stepsize(1);
+        $yaxis->set_stepsize(10);
         $yaxis->set_min(0);
         $course_views_chart->set_yaxis($yaxis);
         $course_views_chart->set_labels($dates);
@@ -124,6 +124,8 @@ class render_activity_charts{
     }
 
     public static function assignments($assignTimeCount,$labels){
+        
+        
         $chart = new \core\chart_line();
         $chart->set_labels($labels);
         $chart->set_title("Assignment Submissions with Dates");
@@ -132,12 +134,14 @@ class render_activity_charts{
         $yaxis->set_stepsize(1);
         $yaxis->set_min(0);
         $chart->set_yaxis($yaxis);
+        
         foreach($assignTimeCount as $assignment){
             //assignment[0] == name
             //assignment[1] == time & count
-
+            
             $countOfDates=array();
             foreach($labels as $label_date){
+                // print_r($label_date);
                 if(isset($assignment[1][$label_date])){
                     array_push($countOfDates, $assignment[1][$label_date]);
                 }else{
@@ -149,6 +153,7 @@ class render_activity_charts{
             $chart->add_series($series);
             
         }
+
         return $chart;
     }
 
