@@ -43,7 +43,7 @@ $menu = new navigation_menu();
 $menu->create_menu($id,$course,$USER);
 
 // Multiple Discussions per Forum
-$multipleForums = $stats_library->getMultipleDiscussions($course);
+$multipleForums = $stats_library->getMultipleDiscussions($course, $student_records);
 
 $multipleDiscussionsChart = $charts->multi_discussion_forum($multipleForums);
 
@@ -52,7 +52,7 @@ echo $OUTPUT->render($multipleDiscussionsChart);
 echo '</div>';
 
 // One Discussion per Forum
-$singleDiscussions = $stats_library->getSingleDiscussions($course);
+$singleDiscussions = $stats_library->getSingleDiscussions($course, $student_records);
 
 $singleDiscussionChart = $charts->single_discussion_forum($singleDiscussions);
 
@@ -63,7 +63,7 @@ echo '</div>';
 
 
 // Limited Discussions per Forum
-$limitedForums = $stats_library->getLimitedDiscussions($course);
+$limitedForums = $stats_library->getLimitedDiscussions($course, $student_records);
 
 $limitedDiscussionsChart = $charts->limited_discussion_forum($limitedForums);
 echo '<div class="resource_access">';

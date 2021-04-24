@@ -25,9 +25,9 @@ class course_activity{
                                                     JOIN {enrol} e ON e.id = ue.enrolid
                                                     JOIN {role_assignments} ra ON ra.userid = u.id
                                                     JOIN {context} ct ON ct.id = ra.contextid AND ct.contextlevel = 50
-                                                    JOIN {course} c ON c.id = ct.instanceid AND e.courseid =$course->id
+                                                    JOIN {course} c ON c.id = ct.instanceid AND e.courseid = c.id
                                                     JOIN {role} r ON r.id = ra.roleid AND r.shortname = 'student'
-                                                    WHERE e.status = 0 AND u.suspended = 0 AND u.deleted = 0
+                                                    WHERE c.id=$course->id AND e.status = 0 AND u.suspended = 0 AND u.deleted = 0
                                                     AND (ue.timeend = 0 OR ue.timeend > UNIX_TIMESTAMP(NOW())) AND ue.status = 0
                                                 ");
 
@@ -185,7 +185,7 @@ class course_activity{
 
         $db = new course_activity;
         $quizzes = $db->getQuizzes($course);
-
+    
         foreach($quizzes as $quiz){
             $id= $quiz['q_id'];
             $attempts = $DB->get_records('quiz_grades',array('quiz' =>$id)); 
@@ -198,9 +198,11 @@ class course_activity{
         return [$quiz_completions,$uncompleted];
     }
 
-    public static function getMultipleDiscussions($course){
+    public static function getMultipleDiscussions($course,$student_records){
         global $DB;
         
+        $students = array_keys($student_records);
+        list($insql,$inparams) = $DB->get_in_or_equal($students);
         //There are many forums
         //There are many discussions
         //There are many posts per discussion
@@ -220,12 +222,19 @@ class course_activity{
             $forumId = $forum['forum_id'];
             array_push($labelForums, $forum['forum_name']);
 
-            $discussions = $DB->get_records_sql("SELECT fd.id AS forum_discussion_id, fd.name AS forum_name
+            $discussions = $DB->get_records_sql("SELECT fd.id AS forum_discussion_id, fd.name AS forum_name, fd.userid AS userid
                                                  FROM {forum_discussions} fd
                                                  JOIN {forum} f ON f.id = fd.forum
-                                                 WHERE f.id=$forumId AND f.course=$course->id");
+                                                 WHERE f.id=$forumId AND f.course=$course->id ");
+            
             $discussions = json_decode(json_encode($discussions), true);
-            array_push($multipleDiscussions, count($discussions));
+            $sql = "SELECT fd.id AS forum_discussion_id, fd.name AS forum_name, fd.userid AS userid
+                                                 FROM {forum_discussions} fd
+                                                 JOIN {forum} f ON f.id = fd.forum
+                                                 WHERE f.id=$forumId AND f.course=$course->id AND fd.userid $insql";
+            
+            $student_discussions = $DB->get_records_sql($sql,$inparams);
+            array_push($multipleDiscussions, count($student_discussions));
 
             if(count($discussions) == 0){
                 array_push($multiplePosts, 0);
@@ -233,11 +242,12 @@ class course_activity{
                 foreach($discussions as $discussion){
                     $d_id = $discussion['forum_discussion_id'];
 
-                    $posts = $DB->get_records_sql(" SELECT fp.id as post_id
+                    $sql = " SELECT fp.id as post_id, fp.userid AS userid
                                                     FROM {forum_posts} fp 
                                                     JOIN {forum_discussions} fd ON fp.discussion = fd.id
-                                                    WHERE fd.course=$course->id AND fd.forum=$forumId AND fp.discussion=$d_id
-                                                 ");
+                                                    WHERE fd.course=$course->id AND fd.forum=$forumId AND fp.discussion=$d_id AND fp.userid $insql
+                                                 ";
+                    $posts = $DB->get_records_sql($sql,$inparams);
                     $posts = json_decode(json_encode($posts), true);
                     array_push($multiplePosts, count($posts));
                 }
@@ -247,25 +257,27 @@ class course_activity{
 
     }
 
-    public static function getSingleDiscussions($course){
+    public static function getSingleDiscussions($course, $student_records){
         global $DB;
         $forumPosts=array();
-
-        $forums = $DB->get_records_sql(" SELECT f.id AS forum_id, f.name AS name, m.id AS module_id, cm.id AS course_module_id
+        $forums = $DB->get_records_sql(" SELECT f.id AS forum_id, f.name AS name, m.id AS module_id, cm.id AS course_module_id, cm.course as cm_course, f.course AS f_course
                                          FROM {forum} f
                                          JOIN {modules} m ON m.name='forum'
                                          JOIN {course_modules} cm ON cm.id=m.id
-                                         WHERE cm.course=$course->id AND type='single' OR type='qanda' AND f.course=$course->id AND cm.visible=1");
+                                         WHERE (f.course=$course->id AND type='single') OR (type='qanda' AND f.course=$course->id) AND cm.visible=1");
 
         $forums = json_decode(json_encode($forums), true);
+        $students = array_keys($student_records);
+        list($insql,$inparams) = $DB->get_in_or_equal($students);
+
         foreach ($forums as $forum){
             $forumId = $forum['forum_id'];
-            $posts = $DB->get_records_sql(" SELECT fd.id AS forum_disc_id, fp.id as forum_id
+            $sql = "SELECT fd.id AS forum_disc_id, fp.id AS forum_id, fp.userid AS userid
                                             FROM {forum_discussions} fd
                                             JOIN {forum_posts} fp ON fp.discussion = fd.id
-                                            WHERE fd.course=$course->id AND fd.forum=$forumId
-                                            ");
-
+                                            WHERE fp.userid $insql AND fd.course=$course->id AND fd.forum=$forumId  
+                                            ";
+            $posts = $DB->get_records_sql($sql,$inparams);
             $posts = json_decode(json_encode($posts), true);
             
             array_push($forumPosts,[$forum['name'], count($posts)]);
@@ -275,7 +287,7 @@ class course_activity{
     }
 
 
-    public static function getLimitedDiscussions($course){
+    public static function getLimitedDiscussions($course, $student_records){
         global $DB;
         //There are many forums
         //There is one discussion per user
@@ -292,6 +304,9 @@ class course_activity{
         $multipleDiscussions=array();
         $multiplePosts=array();
 
+        $students = array_keys($student_records);
+        list($insql,$inparams) = $DB->get_in_or_equal($students);
+        
         foreach ($forums as $forum){
             $forumId = $forum['forum_id'];
             array_push($labelForums, $forum['forum_name']);
@@ -300,7 +315,14 @@ class course_activity{
                                                  JOIN {forum} f ON f.id = fd.forum
                                                  WHERE f.id=$forumId AND f.course=$course->id");
             $discussions = json_decode(json_encode($discussions), true);
-            array_push($multipleDiscussions, count($discussions));
+
+            $sql = "SELECT fd.id AS forum_discussion_id, fd.name AS forum_name, fd.userid AS userid
+                                                 FROM {forum_discussions} fd
+                                                 JOIN {forum} f ON f.id = fd.forum
+                                                 WHERE f.id=$forumId AND f.course=$course->id AND fd.userid $insql";
+            
+            $student_discussions = $DB->get_records_sql($sql,$inparams);
+            array_push($multipleDiscussions, count($student_discussions));
 
             if(count($discussions) == 0){
                 array_push($multiplePosts, 0);
@@ -364,6 +386,13 @@ class course_activity{
             }
         }
 
+        //date sort from stack overflow to order dates
+        //https://stackoverflow.com/questions/40462778/how-to-sort-date-array-in-php
+        function date_sort($a,$b){
+            $date = strtotime($a) - strtotime($b);
+            return strval($date);
+        }
+        $submissionDateTime = array();
         foreach($moduleSubmissions as $key=> $moduleSub){
             //count the time of each submission in an array
             $timeCount=array();
@@ -371,13 +400,15 @@ class course_activity{
             foreach($moduleSub as $sub){
                 array_push($timeCount,$sub);
             }
+            usort($timeCount,"date_sort");
+
             //count the number of items in the array
             $counts = array_count_values($timeCount);
             
             array_push($allDates,array_keys($counts));
             array_push($modSubDateCount, [$key,$counts]);
+            $submissionDateTime[$key] = $counts;
         }
-
         $labels=array();
         //add each date from all assignments to the chart labels
         foreach($allDates as $date){
@@ -385,14 +416,10 @@ class course_activity{
                 array_push($labels,$item);
             }
         }
-
-        //date sort from stack overflow to order dates
-        //https://stackoverflow.com/questions/40462778/how-to-sort-date-array-in-php
-        function date_sort($a,$b){
-            return strtotime($a) - strtotime($b);
-        }
+        
+        $labels= array_values(array_unique($labels));
         usort($labels,"date_sort");
-       
+        
         return [$labels,$modSubDateCount];
     }
     

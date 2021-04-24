@@ -39,4 +39,7 @@ $stats_library = new course_activity();
 $charts = new render_activity_charts();
 $activity_library = new student_activity();
 $isStudent = $activity_library->isStudent($course,$USER);
+
+//get users with capability to submit an activity i.e. students
+$student_records = $stats_library->getStudentRecords($course);
 ?>

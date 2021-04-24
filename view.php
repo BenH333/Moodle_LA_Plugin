@@ -35,8 +35,6 @@ $menu->create_menu($id,$course,$USER);
 
 $activities = get_array_of_activities($course->id);
 
-//get users with capability to submit an activity i.e. students
-$student_records = $stats_library->getStudentRecords($course);
 $students = array_keys($student_records);
 
 //log data might not be needed
