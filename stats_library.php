@@ -209,7 +209,7 @@ class course_activity{
         $forums = $DB->get_records_sql(" SELECT f.id AS forum_id, f.name AS forum_name, m.id AS module_id, cm.module AS course_module_id
                                          FROM {forum} f
                                          JOIN {modules} m ON m.name='forum'
-                                         JOIN {course_modules} cm ON cm.id=m.id
+                                         JOIN {course_modules} cm ON cm.module=m.id
                                          WHERE cm.course=$course->id AND type='blog' OR type='general' AND f.course=$course->id AND cm.visible=1");
         
         $forums = json_decode(json_encode($forums), true);
@@ -263,7 +263,7 @@ class course_activity{
         $forums = $DB->get_records_sql(" SELECT f.id AS forum_id, f.name AS name, m.id AS module_id, cm.module AS course_module_id, cm.course as cm_course, f.course AS f_course
                                          FROM {forum} f
                                          JOIN {modules} m ON m.name='forum'
-                                         JOIN {course_modules} cm ON cm.id=m.id
+                                         JOIN {course_modules} cm ON cm.module=m.id
                                          WHERE (f.course=$course->id AND type='single') OR (type='qanda' AND f.course=$course->id) AND cm.visible=1");
 
         $forums = json_decode(json_encode($forums), true);
@@ -295,7 +295,7 @@ class course_activity{
         $forums = $DB->get_records_sql(" SELECT f.id AS forum_id, f.name AS forum_name, m.id AS module_id, cm.module AS course_module_id
                                          FROM {forum} f
                                          JOIN {modules} m ON m.name='forum'
-                                         JOIN {course_modules} cm ON cm.id=m.id
+                                         JOIN {course_modules} cm ON cm.module=m.id
                                          WHERE f.course=$course->id AND type='eachuser' AND cm.visible=1");
 
         $forums = json_decode(json_encode($forums), true);
