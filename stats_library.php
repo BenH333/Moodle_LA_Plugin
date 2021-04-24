@@ -206,7 +206,7 @@ class course_activity{
         //There are many forums
         //There are many discussions
         //There are many posts per discussion
-        $forums = $DB->get_records_sql(" SELECT f.id AS forum_id, f.name AS forum_name, m.id AS module_id, cm.id AS course_module_id
+        $forums = $DB->get_records_sql(" SELECT f.id AS forum_id, f.name AS forum_name, m.id AS module_id, cm.module AS course_module_id
                                          FROM {forum} f
                                          JOIN {modules} m ON m.name='forum'
                                          JOIN {course_modules} cm ON cm.id=m.id
@@ -260,7 +260,7 @@ class course_activity{
     public static function getSingleDiscussions($course, $student_records){
         global $DB;
         $forumPosts=array();
-        $forums = $DB->get_records_sql(" SELECT f.id AS forum_id, f.name AS name, m.id AS module_id, cm.id AS course_module_id, cm.course as cm_course, f.course AS f_course
+        $forums = $DB->get_records_sql(" SELECT f.id AS forum_id, f.name AS name, m.id AS module_id, cm.module AS course_module_id, cm.course as cm_course, f.course AS f_course
                                          FROM {forum} f
                                          JOIN {modules} m ON m.name='forum'
                                          JOIN {course_modules} cm ON cm.id=m.id
@@ -292,7 +292,7 @@ class course_activity{
         //There are many forums
         //There is one discussion per user
         //There are many posts per discussion
-        $forums = $DB->get_records_sql(" SELECT f.id AS forum_id, f.name AS forum_name, m.id AS module_id, cm.id AS course_module_id
+        $forums = $DB->get_records_sql(" SELECT f.id AS forum_id, f.name AS forum_name, m.id AS module_id, cm.module AS course_module_id
                                          FROM {forum} f
                                          JOIN {modules} m ON m.name='forum'
                                          JOIN {course_modules} cm ON cm.id=m.id
