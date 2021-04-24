@@ -210,10 +210,9 @@ class course_activity{
                                          FROM {forum} f
                                          JOIN {modules} m ON m.name='forum'
                                          JOIN {course_modules} cm ON cm.module=m.id
-                                         WHERE cm.course=$course->id AND type='blog' OR type='general' AND f.course=$course->id AND cm.visible=1");
+                                         WHERE (f.course=$course->id AND type='blog') OR (type='general' AND f.course=$course->id) AND cm.visible=1");
         
         $forums = json_decode(json_encode($forums), true);
-        
         $labelForums=array();
         $multipleDiscussions=array();
         $multiplePosts=array();
@@ -228,6 +227,8 @@ class course_activity{
                                                  WHERE f.id=$forumId AND f.course=$course->id ");
             
             $discussions = json_decode(json_encode($discussions), true);
+            // print_r($discussions);
+
             $sql = "SELECT fd.id AS forum_discussion_id, fd.name AS forum_name, fd.userid AS userid
                                                  FROM {forum_discussions} fd
                                                  JOIN {forum} f ON f.id = fd.forum
@@ -236,23 +237,31 @@ class course_activity{
             $student_discussions = $DB->get_records_sql($sql,$inparams);
             array_push($multipleDiscussions, count($student_discussions));
 
+            $totalPosts=0;
             if(count($discussions) == 0){
                 array_push($multiplePosts, 0);
             } else{
                 foreach($discussions as $discussion){
                     $d_id = $discussion['forum_discussion_id'];
 
-                    $sql = " SELECT fp.id as post_id, fp.userid AS userid
+                    $sql = " SELECT fp.id as post_id, fp.userid AS userid, fp.message AS fpmessage
                                                     FROM {forum_posts} fp 
                                                     JOIN {forum_discussions} fd ON fp.discussion = fd.id
                                                     WHERE fd.course=$course->id AND fd.forum=$forumId AND fp.discussion=$d_id AND fp.userid $insql
                                                  ";
                     $posts = $DB->get_records_sql($sql,$inparams);
                     $posts = json_decode(json_encode($posts), true);
-                    array_push($multiplePosts, count($posts));
+                    // print_r($posts);
+                    $totalPosts = $totalPosts + count($posts);
                 }
+                array_push($multiplePosts, $totalPosts);
             }
         }
+        
+        
+        // print_r($labelForums);
+        // print_r($multipleDiscussions);
+        // print_r($multiplePosts);
         return ([$labelForums, $multipleDiscussions, $multiplePosts]);
 
     }
@@ -272,9 +281,9 @@ class course_activity{
 
         foreach ($forums as $forum){
             $forumId = $forum['forum_id'];
-            $sql = "SELECT fd.id AS forum_disc_id, fp.id AS forum_id, fp.userid AS userid
-                                            FROM {forum_discussions} fd
-                                            JOIN {forum_posts} fp ON fp.discussion = fd.id
+            $sql = "SELECT fp.id AS post_id, fd.id AS discussion_id, fp.userid AS userid, fp.message AS fpmessage
+                                            FROM {forum_posts} fp 
+                                            JOIN {forum_discussions} fd ON fp.discussion = fd.id
                                             WHERE fp.userid $insql AND fd.course=$course->id AND fd.forum=$forumId  
                                             ";
             $posts = $DB->get_records_sql($sql,$inparams);
@@ -324,6 +333,7 @@ class course_activity{
             $student_discussions = $DB->get_records_sql($sql,$inparams);
             array_push($multipleDiscussions, count($student_discussions));
 
+            $totalPosts=0;
             if(count($discussions) == 0){
                 array_push($multiplePosts, 0);
             } else{
@@ -336,9 +346,10 @@ class course_activity{
                                                     WHERE fd.course=$course->id AND fd.forum=$forumId AND fp.discussion=$d_id
                                                 ");
                     $posts = json_decode(json_encode($posts), true);
-
-                    array_push($multiplePosts, count($posts));
+                    $totalPosts = $totalPosts + count($posts);
+                    
                 }
+                array_push($multiplePosts, $totalPosts);
             }
         }
         return ([$labelForums, $multipleDiscussions, $multiplePosts]);
